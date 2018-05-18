@@ -1,0 +1,30 @@
+{
+  "camera": {
+    "clearColor": [0.1, 0.1, 0.1]
+  },
+  "mainMenu": {
+    "color": [1,1,1],
+    "startNewGameText": "Start game",
+    "customizeText": "Customize",
+    "creditsText": "Credits",
+    "fontSize": 24
+  },
+
+  "customize": {
+    "ui": {
+      "fontSize": 24,
+      "backBtnFontSize": 14,
+      "color": [1,1,1],
+      "titleText": "Customize",
+      "backBtnText": "Back"
+    }
+  },
+
+  "gameLoop": {
+    "ui": {
+      "fontSize": 24,
+      "color": [1,1,1],
+      "storeText": "Store: "
+    }
+  }
+}
