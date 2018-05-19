@@ -1,15 +1,25 @@
-class GameLoop extends Scene {
+import Scene from "./../Scene";
+
+export default class GameLoop extends Scene {
 
     screen = new pc.Entity("screen");
-    storeLabel = new pc.Entity("storeLabel");
+    scoreLabel = new pc.Entity("scoreLabel");
+    ball = new pc.Entity("ball");
 
-    store = 0;
-
+    score = 0;
 
     constructor(app) {
 
         super(app);
 
+        this.initUi();
+        this.initBall();
+
+        game.camera.setPosition(0, 0, 3);
+    }
+
+    initUi() {
+        // Init screen
         this.screen.addComponent("screen", {
             referenceResolution: pc.Vec2(1280, 720),
             scaleMode: pc.SCALEMODE_BLEND,
@@ -18,7 +28,8 @@ class GameLoop extends Scene {
         });
         this.root.addChild(this.screen);
 
-        this.storeLabel.addComponent("element", {
+        // Score
+        this.scoreLabel.addComponent("element", {
             type: pc.ELEMENTTYPE_TEXT,
             anchor: new pc.Vec4(0, 1, 0, 1),
             pivot: new pc.Vec2(0, 1),
@@ -27,11 +38,39 @@ class GameLoop extends Scene {
             fontAsset : 1,
             color: new pc.Color(...game.config.gameLoop.ui.color),
             fontSize: game.config.gameLoop.ui.fontSize,
-            text: game.config.gameLoop.ui.storeText
+            text: game.config.gameLoop.ui.scoreText + this.score
         });
 
+        this.screen.addChild(this.scoreLabel);
+        this.scoreLabel.setPosition(-0.9,0.9,0);
+    }
 
-        this.screen.addChild(this.storeLabel);
-        this.storeLabel.setPosition(-0.9,0.9,0);
+    initBall() {
+
+        this.ball.addComponent("model", {
+            type: "sphere",
+        });
+
+        this.ball.addComponent("collision", {
+            radius: game.config.gameLoop.ball.radius,
+            type: "sphere"
+        });
+
+        this.ball.addComponent("rigidbody", {
+            type: pc.RIGIDBODY_TYPE_DYNAMIC,
+            mass: game.config.gameLoop.ball.mass,
+            linearDamping: 0,
+            angularDamping: 0,
+            linearFactor: new pc.Vec3(0, 1, 1),
+            angularFactor: pc.Vec3.ZERO,
+            friction: 0,
+            restitution: 1
+        });
+
+        this.root.addChild(this.ball);
+    }
+
+    initLevel() {
+
     }
 }

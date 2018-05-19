@@ -1,16 +1,14 @@
 
 var gulp = require("gulp");
-var scss = require("gulp-scss");
 var concat = require("gulp-concat");
-var uglify = require("gulp-uglifyjs");
-var browserSync= require("browser-sync");
-var autoprefixer = require("gulp-autoprefixer");
+var browserSync = require("browser-sync");
 var del = require("del");
 var bower = require("gulp-bower");
-var imageMin = require("gulp-imagemin");
-var pngquant = require("imagemin-pngquant");
 var babel = require("gulp-babel");
-var jimp = require("gulp-jimp-resize");
+var browserify = require('browserify');
+var babelify = require('babelify');
+var source = require('vinyl-source-stream');
+var gutil = require('gulp-util');
 
 gulp.task("scripts-libs", function() {
 	return gulp.src([
@@ -24,12 +22,27 @@ gulp.task("scripts-libs", function() {
 
 gulp.task("scripts", [], function() {
 
-	return gulp.src(["src/js/**"])
+    browserify({
+        entries: 'src/start.js',
+        debug: true
+    })
+	.transform(babelify.configure({
+		presets: ["@babel/preset-env"],
+        plugins: ["@babel/plugin-proposal-class-properties"]
+	}))
+    .on('error',gutil.log)
+    .bundle()
+    .on('error',gutil.log)
+    .pipe(source('bundle.js'))
+    .pipe(gulp.dest('dist/js/'));
+
+	/*return gulp.src(["src/js/!**"])
+
 		.pipe(babel({
             presets: ['@babel/env'],
             plugins: ["@babel/plugin-proposal-class-properties"]
         }))
-		.pipe(gulp.dest("dist/js"));
+		.pipe(gulp.dest("dist/js"));*/
 	
 });
 
@@ -52,9 +65,9 @@ gulp.task('bower', function() {
         .pipe(gulp.dest('vendor/'))
 });
 
-
 gulp.task("browser-sync", function() {
 	browserSync({
+        open: false,
 		server: {
 			baseDir: "dist"
 		}
@@ -62,6 +75,6 @@ gulp.task("browser-sync", function() {
 });
 
 gulp.task("watch", ['browser-sync'], function() {
-	gulp.watch(["src/js/**", "src/config/**"],  ['scripts', 'config'], browserSync.reload);
+	gulp.watch(["src/start.js","src/js/**", "src/config/**"],  ['scripts', 'config'], browserSync.reload);
 });
 

@@ -1,4 +1,9 @@
-class Application {
+import Scene from "./Scene";
+import MainMenu from "./scenes/MainMenu";
+import Customize from "./scenes/Customize";
+import GameLoop from "./scenes/GameLoop";
+
+export default class Application {
 
     configFile = "/config/game.json";
 
@@ -6,7 +11,11 @@ class Application {
         ["/assets/font/latoregular.json", "font"],
     ];
 
+    camera = new pc.Entity('camera');
+    light = new pc.Entity('light');
+
     constructor(app) {
+
         this.app = app;
         this.scene = new Scene(this.app);
 
@@ -17,9 +26,9 @@ class Application {
         this.config()
             .then(this.preloadAssets())
             .then(() => {
-            this.hierarchy();
-            app.fire("game:menu");
-        })
+                this.hierarchy();
+                app.fire("game:menu");
+            })
     }
 
     config() {
@@ -34,25 +43,25 @@ class Application {
     }
 
     events() {
-        app.on("scene:set", scene => {
-            this.scene = new scene(app);
+        this.app.on("scene:set", scene => {
+            this.scene = new scene(this.app);
         });
 
-        app.on("game:menu", () => {
+        this.app.on("game:menu", () => {
             this.scene.hide().then(() => {
-                app.fire("scene:set", MainMenu);
+                this.app.fire("scene:set", MainMenu);
             })
         });
 
-        app.on("game:start", () => {
+        this.app.on("game:start", () => {
             this.scene.hide().then(() => {
-                app.fire("scene:set", GameLoop);
+                this.app.fire("scene:set", GameLoop);
             })
         })
 
-        app.on("game:customize", () => {
+        this.app.on("game:customize", () => {
             this.scene.hide().then(() => {
-                app.fire("scene:set", Customize);
+                this.app.fire("scene:set", Customize);
             })
         })
     }
@@ -68,14 +77,10 @@ class Application {
     }
 
     hierarchy() {
-        // Camera
-        this.camera = new pc.Entity('camera');
         this.camera.addComponent('camera', {
             clearColor: new pc.Color(...this.config.camera.clearColor)
         });
 
-        // Light
-        this.light = new pc.Entity('light');
         this.light.addComponent('light');
 
         this.app.root.addChild(this.camera);
@@ -84,7 +89,7 @@ class Application {
 
     static loadAsset(url, type) {
         return new Promise((resolve, reject) => {
-            app.assets.loadFromUrl(url, type, function (err, asset) {
+            pc.app.assets.loadFromUrl(url, type, function (err, asset) {
                 if (err) return reject(err);
                 return resolve(asset);
             });
@@ -92,6 +97,3 @@ class Application {
     }
 }
 
-
-// Game loop
-// Different scenes

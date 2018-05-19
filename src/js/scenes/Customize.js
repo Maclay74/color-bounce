@@ -1,4 +1,7 @@
-class Customize extends Scene {
+import Scene from "./../Scene";
+
+
+export default class Customize extends Scene {
 
     buttonConfig = {
         type: pc.ELEMENTTYPE_TEXT,

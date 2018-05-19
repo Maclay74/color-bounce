@@ -1,4 +1,6 @@
-class MainMenu extends Scene {
+import Scene from "./../Scene";
+
+export default class MainMenu extends Scene {
 
     buttonConfig = {
         type: pc.ELEMENTTYPE_TEXT,
