@@ -81,10 +81,12 @@ export default class Application {
             clearColor: new pc.Color(...this.config.camera.clearColor)
         });
 
-        this.light.addComponent('light');
+        this.light.addComponent('light', {
+
+        });
 
         this.app.root.addChild(this.camera);
-        this.app.root.addChild(this.light);
+        this.camera.addChild(this.light);
     }
 
     static loadAsset(url, type) {

@@ -29,6 +29,25 @@
     "ball": {
       "radius": 0.5,
       "mass": 1
+    },
+
+    "level": {
+      "elements": {
+        "panel": {
+          "blockWidth": 6,
+          "blockHeight": 3.5,
+          "blockDepth": 1,
+          "restitution": 0.3
+        },
+
+        "safeZone": {
+          "blockWidth": 15,
+          "blockHeight": 3.5,
+          "blockDepth": 1,
+          "restitution": 0.3,
+          "color": [1,1,1]
+        }
+      }
     }
   }
 }

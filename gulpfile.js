@@ -24,7 +24,7 @@ gulp.task("scripts", [], function() {
 
     browserify({
         entries: 'src/start.js',
-        debug: true
+        debug: false
     })
 	.transform(babelify.configure({
 		presets: ["@babel/preset-env"],
@@ -35,15 +35,6 @@ gulp.task("scripts", [], function() {
     .on('error',gutil.log)
     .pipe(source('bundle.js'))
     .pipe(gulp.dest('dist/js/'));
-
-	/*return gulp.src(["src/js/!**"])
-
-		.pipe(babel({
-            presets: ['@babel/env'],
-            plugins: ["@babel/plugin-proposal-class-properties"]
-        }))
-		.pipe(gulp.dest("dist/js"));*/
-	
 });
 
 gulp.task("clean", function() {

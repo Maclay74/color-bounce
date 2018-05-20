@@ -135,8 +135,6 @@ app.configure("/config/playcanvas.json", function (err) {
             console.error(err);
         }
         app.start();
-
         window.game = new Application(app);
-
     });
 });
