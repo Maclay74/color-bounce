@@ -35,6 +35,7 @@ export default class PanelElement extends LevelElement{
 
         // When ball contacts with element we have to check it's color
         this.block.collision.on("collisionstart", result => {
+            this.block.collision.off("collisionstart");
             game.app.fire("level:checkColor", this.color);
         });
 
@@ -64,14 +65,13 @@ export default class PanelElement extends LevelElement{
 
         // Jump on the end of platform
         this.jumper.collision.on("triggerenter", result => {
-
             game.app.fire("level:jump");
-
         });
 
         // Remove platform
         this.jumper.collision.on("triggerleave", result => {
-            console.log("leave");
+            this.entity.destroy();
+            game.app.fire("level:addElement");
         });
     }
 
@@ -93,9 +93,9 @@ export default class PanelElement extends LevelElement{
                 new pc.Color(1, 0, 0),
                 new pc.Color(0, 1, 0),
                 new pc.Color(0, 0, 1),
-                new pc.Color(1, 1, 0),
-                new pc.Color(1, 0, 1),
-                new pc.Color(0, 1, 1),
+                //new pc.Color(1, 1, 0),
+                //new pc.Color(1, 0, 1),
+                //new pc.Color(0, 1, 1),
             ]
         };
     }

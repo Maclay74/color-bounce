@@ -28,7 +28,8 @@
     },
     "ball": {
       "radius": 0.5,
-      "mass": 1
+      "mass": 1,
+      "startColor": [1,1,1]
     },
 
     "level": {

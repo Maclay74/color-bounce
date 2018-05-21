@@ -8,6 +8,10 @@ export default class GameLoop extends Scene {
     scoreLabel = new pc.Entity("scoreLabel");
     ball = new pc.Entity("ball");
 
+    redButton = new pc.Entity("redButton");
+    greenButton = new pc.Entity("greenButton");
+    blueButton = new pc.Entity("blueButton");
+
     score = 0;
 
     availableElements = [
@@ -22,9 +26,9 @@ export default class GameLoop extends Scene {
     constructor(app) {
         super(app);
 
+        this.events();
         this.initUi();
         this.initBall();
-        this.events();
         this.initLevel();
 
         this.ball.rigidbody.teleport(0, 2, 0);
@@ -59,6 +63,54 @@ export default class GameLoop extends Scene {
 
         this.screen.addChild(this.scoreLabel);
         this.scoreLabel.setPosition(-0.9, 0.9, 0);
+
+        // Colors
+        this.redButton.addComponent("element", {
+            type: pc.ELEMENTTYPE_IMAGE,
+            anchor: new pc.Vec4(0.5, 0, 0.5, 0),
+            pivot: new pc.Vec2(0.5, 0),
+            useInput: true,
+            width: 70,
+            height: 70,
+            color: new pc.Color(1,0,0)
+        });
+
+        this.greenButton.addComponent("element", {
+            type: pc.ELEMENTTYPE_IMAGE,
+            anchor: new pc.Vec4(0.5, 0, 0.5, 0),
+            pivot: new pc.Vec2(0.5, 0),
+            useInput: true,
+            width: 70,
+            height: 70,
+            color: new pc.Color(0,1,0)
+        });
+
+        this.blueButton.addComponent("element", {
+            type: pc.ELEMENTTYPE_IMAGE,
+            anchor: new pc.Vec4(0.5, 0, 0.5, 0),
+            pivot: new pc.Vec2(0.5, 0),
+            useInput: true,
+            width: 70,
+            height: 70,
+            color: new pc.Color(0,0,1)
+        });
+
+        this.screen.addChild(this.redButton);
+        this.screen.addChild(this.greenButton);
+        this.screen.addChild(this.blueButton);
+
+        this.redButton.setLocalPosition(-100, 46, 0);
+        this.greenButton.setLocalPosition(0, 46, 0);
+        this.blueButton.setLocalPosition(100, 46, 0);
+
+        let touchStart = function(event) {
+            game.app.fire("level:changeColor", this.color);
+        };
+
+        this.redButton.element.on("touchstart",touchStart)
+        this.greenButton.element.on("touchstart",touchStart)
+        this.blueButton.element.on("touchstart",touchStart)
+
     }
 
     initBall() {
@@ -89,6 +141,8 @@ export default class GameLoop extends Scene {
         });
 
         this.root.addChild(this.ball);
+
+        game.app.fire("level:changeColor", new pc.Color(...game.config.gameLoop.ball.startColor))
     }
 
     initLevel() {
@@ -110,6 +164,16 @@ export default class GameLoop extends Scene {
             this.ball.rigidbody.applyImpulse(0, 4, 0);
         });
 
+        game.app.on("level:addElement",()=> {
+            this.addElement();
+        });
+
+        game.app.on("level:changeColor", color => {
+            let material = this.ball.model.model.meshInstances[0].material;
+            material.diffuse = color;
+            material.update();
+        })
+
     }
 
     checkColor(color) {
@@ -118,6 +182,9 @@ export default class GameLoop extends Scene {
 
         if (ballColor.toString() !== color.toString()) {
             game.app.fire("game:menu");
+        } else {
+            this.score++;
+            this.scoreLabel.element.text = game.config.gameLoop.ui.scoreText + this.score;
         }
 
     }
@@ -156,7 +223,9 @@ export default class GameLoop extends Scene {
 
             game.camera.reparent(game.app.root);
 
+            game.app.off("level:addElement");
             game.app.off("level:checkColor");
+            game.app.off("level:changeColor");
             game.app.off("level:jump");
             this.root.destroy();
             return resolve();
