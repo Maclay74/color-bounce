@@ -1,8 +1,7 @@
 import LevelElement from "./../LevelElement";
+import Animation from "./../Animation";
 
 export default class PanelElement extends LevelElement{
-
-    static count = 0;
 
     block = new pc.Entity("block");
     jumper = new pc.Entity("jumper");
@@ -15,17 +14,23 @@ export default class PanelElement extends LevelElement{
         Object.assign(this.options, options);
         this.initBlock();
         this.initJumper();
+    }
 
-        PanelElement.count++;
+    afterInsert() {
+        this.block.rigidbody.syncEntityToBody();
     }
 
     initBlock() {
 
-        this.block.addComponent("model", { type: "box" });
+        this.block.addComponent("model", {
+            type: "box",
+            castShadows: false,
+            receiveShadows: true
+        });
 
         this.block.addComponent("rigidbody", {
             mass: 0,
-            restitution: game.config.gameLoop.level.elements.panel.restitution
+            restitution: this.options.restitution
         });
 
         this.block.addComponent("collision", {
@@ -36,7 +41,10 @@ export default class PanelElement extends LevelElement{
         // When ball contacts with element we have to check it's color
         this.block.collision.on("collisionstart", result => {
             this.block.collision.off("collisionstart");
-            game.app.fire("level:checkColor", this.color);
+            game.app.fire("level:checkColor", this.colorSynonym());
+            game.app.fire("level:resetBallSpeed");
+
+            game.ball.contact = this;
         });
 
         this.block.setLocalScale(this.options.blockHeight,  this.options.blockDepth, this.options.blockWidth);
@@ -44,6 +52,8 @@ export default class PanelElement extends LevelElement{
         // Material
         let material = new pc.StandardMaterial();
         material.diffuse = this.getRandomColor();
+        material.opacity = 0.999;
+        material.blendType = pc.BLEND_NORMAL;
         material.update();
         this.block.model.model.meshInstances[0].material = material;
 
@@ -56,11 +66,11 @@ export default class PanelElement extends LevelElement{
 
         //this.jumper.addComponent("model", {type: "box"});
         this.jumper.setLocalScale(this.options.blockHeight, this.options.blockDepth / 2, this.options.jumperWidth);
-        this.jumper.setLocalPosition(0, this.options.blockDepth / 2, this.options.blockWidth / 2 - this.options.jumperWidth / 2);
+        this.jumper.setLocalPosition(0, this.options.blockDepth, this.options.blockWidth / 2 - this.options.jumperWidth / 2);
 
         this.jumper.addComponent("collision", {
             type: "box",
-            halfExtents: new pc.Vec3(this.options.blockHeight / 2,  this.options.blockDepth / 4, this.options.jumperWidth / 2)
+            halfExtents: new pc.Vec3(this.options.blockHeight / 2,  this.options.blockDepth, this.options.jumperWidth / 2)
         });
 
         // Jump on the end of platform
@@ -70,9 +80,14 @@ export default class PanelElement extends LevelElement{
 
         // Remove platform
         this.jumper.collision.on("triggerleave", result => {
-            this.entity.destroy();
+            game.app.fire("level:removeElement", this);
             game.app.fire("level:addElement");
+            game.ball.contact = null;
         });
+    }
+
+    set opacity(value) {
+        this.block.model.model.meshInstances[0].setParameter("material_opacity", value);
     }
 
     get width() {
@@ -89,13 +104,17 @@ export default class PanelElement extends LevelElement{
             blockHeight: game.config.gameLoop.level.elements.panel.blockHeight,
             blockDepth: game.config.gameLoop.level.elements.panel.blockDepth,
             jumperWidth: 1,
+            jumperHeight: 1,
+            //restitution: game.config.gameLoop.level.elements.panel.restitution,
+            restitution: 3,
             colors: [
-                new pc.Color(1, 0, 0),
-                new pc.Color(0, 1, 0),
-                new pc.Color(0, 0, 1),
-                //new pc.Color(1, 1, 0),
-                //new pc.Color(1, 0, 1),
-                //new pc.Color(0, 1, 1),
+                new pc.Color().fromString("#4BB0E4"),
+                new pc.Color().fromString("#E95F78"),
+                new pc.Color().fromString("#FBC626"),
+
+                /*new pc.Color(1, 1, 0),
+                new pc.Color(1, 0, 1),
+                new pc.Color(0, 1, 1),*/
             ]
         };
     }

@@ -1,6 +1,6 @@
 {
   "camera": {
-    "clearColor": [0.1, 0.1, 0.1]
+    "clearColor": [0.28, 0.24, 0.42]
   },
   "mainMenu": {
     "color": [1,1,1],
@@ -22,14 +22,14 @@
 
   "gameLoop": {
     "ui": {
-      "fontSize": 24,
+      "fontSize": 48,
       "color": [1,1,1],
-      "scoreText": "Score: "
+      "scoreText": "SCORE"
     },
     "ball": {
       "radius": 0.5,
       "mass": 1,
-      "startColor": [1,1,1]
+      "startColor": [0,0.67,1]
     },
 
     "level": {
@@ -37,14 +37,14 @@
         "panel": {
           "blockWidth": 6,
           "blockHeight": 3.5,
-          "blockDepth": 1,
-          "restitution": 0.3
+          "blockDepth": 0.5,
+          "restitution": 0
         },
 
         "safeZone": {
           "blockWidth": 15,
           "blockHeight": 3.5,
-          "blockDepth": 1,
+          "blockDepth": 0.5,
           "restitution": 0.3,
           "color": [1,1,1]
         }

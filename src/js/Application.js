@@ -5,33 +5,50 @@ import GameLoop from "./scenes/GameLoop";
 
 export default class Application {
 
-    configFile = "/config/game.json";
+    configFile = "config/game.json";
 
     preload = [
-        ["/assets/font/latoregular.json", "font"],
+        ["assets/font/antonio-regular.json", "font"],
+        ["assets/font/chathura-regular.json", "font"],
+        ["assets/images/background.png", "texture"],
+        ["assets/images/icons.png", "texture"],
+        ["assets/scripts/fps.js", "script"],
+        ["assets/scripts/blur.js", "script"],
+        ["assets/models/ring/ring.json", "model"],
+        ["assets/shaders/blurPS.glsl", "shader"],
     ];
 
     camera = new pc.Entity('camera');
+    cameraTargetPosition = new pc.Vec3();
+    cameraTargetRotation = new pc.Quat(0, 1, 0, 0);
+
+    cameraMovingSpeed = 5;
+    cameraRotationSpeed = 5;
+
     light = new pc.Entity('light');
+
+    screen = new pc.Entity("screen");
+
+    ball = new pc.Entity("ball");
 
     constructor(app) {
 
         this.app = app;
-        this.scene = new Scene(this.app);
+        this.scene = new Scene(this.app, this);
 
         // Set up game events
         this.events();
 
         // Get config and apply some settings
-        this.config()
-            .then(this.preloadAssets())
+        this.loadConfig()
+            .then(this.preloadAssets.bind(this))
+            .then(this.hierarchy.bind(this))
             .then(() => {
-                this.hierarchy();
                 app.fire("game:menu");
             })
     }
 
-    config() {
+    loadConfig() {
         return new Promise((resolve, reject) => {
             axios.get(this.configFile).then(config => {
                 if (!config || !config.data) reject("An error occurred when loading config file");
@@ -44,7 +61,7 @@ export default class Application {
 
     events() {
         this.app.on("scene:set", scene => {
-            this.scene = new scene(this.app);
+            this.scene = new scene(this.app, this);
         });
 
         this.app.on("game:menu", () => {
@@ -64,6 +81,23 @@ export default class Application {
                 this.app.fire("scene:set", Customize);
             })
         })
+
+        this.app.on("update", dt => {
+            this.update(dt);
+        });
+    }
+
+    update(dt) {
+
+        // Move the camera
+        let cameraPosition = this.camera.getPosition().clone();
+        cameraPosition.lerp(cameraPosition, this.cameraTargetPosition, this.cameraMovingSpeed * dt);
+        this.camera.setPosition(cameraPosition);
+
+        // Rotate the camera
+        let cameraRotation = this.camera.getRotation().clone();
+        cameraRotation = cameraRotation.slerp(cameraRotation, this.cameraTargetRotation, this.cameraRotationSpeed * dt);
+        this.camera.setRotation(cameraRotation);
     }
 
     preloadAssets() {
@@ -76,17 +110,256 @@ export default class Application {
         })
     }
 
+    initBall() {
+
+        this.ball.visual = new pc.Entity("visual");
+
+        this.ball.contact = null;
+
+        this.ball.visual.addComponent("model", {
+            type: "sphere",
+            castShadows: true,
+            receiveShadows: false
+        });
+
+        this.ball.addComponent("collision", {
+            radius: game.config.gameLoop.ball.radius,
+            type: "sphere"
+        });
+
+        this.ball.addComponent("rigidbody", {
+            type: pc.RIGIDBODY_TYPE_DYNAMIC,
+            mass: game.config.gameLoop.ball.mass,
+            linearDamping: 0,
+            angularDamping: 0,
+            linearFactor: new pc.Vec3(0, 1, 1),
+            angularFactor: pc.Vec3.ZERO,
+            friction: 0,
+            restitution: 0
+        });
+
+        let material = new pc.StandardMaterial();
+
+        material.diffuse = new pc.Color().fromString("#00ABFF");
+        material.ambient = new pc.Color().fromString("#ffffff");
+        material.ambientTint = true;
+        material.emissiveIntensity = 5.34;
+
+        material.update();
+
+        this.ball.visual.model.model.meshInstances[0].material = material;
+
+        this.ball.addChild(this.ball.visual);
+
+        this.app.root.addChild(this.ball);
+
+    }
+
+    initBackground() {
+
+        this.backgroundLayer = new pc.Layer("background");
+        this.backgroundLayer.name = "background";
+
+        this.backgroundLayer.addCamera(this.camera.camera);
+        this.backgroundLayer.addLight(this.light);
+
+        game.app.scene.layers.insertOpaque(this.backgroundLayer, 0);
+        game.app.scene.layers.insertTransparent(this.backgroundLayer, 0);
+
+        this.backgroundScreen = new pc.Entity("background-screen");
+
+        this.backgroundScreen.addComponent("screen", {
+            screenSpace: true,
+            referenceResolution: pc.Vec2(1280, 720),
+            scaleMode: pc.SCALEMODE_BLEND,
+            scaleBlend: 1,
+        });
+
+        this.backgroundImage = new pc.Entity("background-image");
+
+        Application.getAsset("background.png", "texture").then(asset => {
+            this.backgroundImage.addComponent("element", {
+                type: pc.ELEMENTTYPE_IMAGE,
+                anchor: new pc.Vec4(0,0, 1, 1),
+                pivot: new pc.Vec2(0.5, 0.5),
+                texture: asset.resource,
+                layers: [5]
+            });
+
+            this.backgroundScreen.addChild(this.backgroundImage);
+        });
+
+        this.app.root.addChild(this.backgroundScreen);
+    }
+
+    initIcons(asset) {
+
+        let setIcon = (rect, name) =>  {
+
+            let id = this.iconsSprite.frameKeys.length;
+
+            this.iconsAtlas.setFrame(id, {
+                rect: new pc.Vec4(...rect),
+                pivot: new pc.Vec2(0.5, 0.5),
+                border: new pc.Vec4(0,0,0,0)
+            });
+
+            Application[name] = id;
+            this.iconsSprite.frameKeys.push(id.toString());
+        };
+
+        if (this.iconsSprite) return;
+        this.iconsSprite = new pc.Sprite(game.app.graphicsDevice);
+        this.iconsSprite.frameKeys = [];
+        this.iconsAtlas = new pc.TextureAtlas();
+
+        this.iconsSprite.startUpdate();
+
+        this.iconsSprite.atlas = this.iconsAtlas;
+        this.iconsAtlas.texture = asset.resource;
+
+        this.iconsAtlas._frames = [];
+
+        setIcon([0, 265, 48, 48],   "ICON_PAUSE");
+        setIcon([48, 265, 48, 48],  "ICON_BACK");
+
+        setIcon([0, 179, 74, 74],   "ICON_BLUE_BACKGROUND");
+        setIcon([0, 93, 74, 74],    "ICON_RED_BACKGROUND");
+        setIcon([0, 7, 74, 74],     "ICON_YELLOW_BACKGROUND");
+
+        setIcon([79, 180, 74, 74],   "ICON_BLUE_INNER");
+        setIcon([79, 94, 74, 74],   "ICON_RED_INNER");
+        setIcon([79, 8, 74, 74],   "ICON_YELLOW_INNER");
+
+        setIcon([246, 177, 242, 80],   "ICON_BLUE_BUTTON");
+        setIcon([246, 92, 242, 80],   "ICON_RED_BUTTON");
+        setIcon([246, 5, 242, 80],   "ICON_YELLOW_BUTTON");
+
+        setIcon([106, 267, 60, 60],   "ICON_PLAY");
+        setIcon([166, 267, 60, 60],   "ICON_CUSTOMIZE");
+        setIcon([226, 267, 60, 60],   "ICON_CREDITS");
+
+        this.iconsSprite.endUpdate();
+    }
+
+    initBlur() {
+
+        let device = this.app.graphicsDevice;
+
+        let texture = new pc.Texture(device, {
+            width: device.width,
+            height: device.height,
+            format: pc.PIXELFORMAT_R8_G8_B8_A8,
+            mipmaps: false
+        });
+
+        let renderTarget = new pc.RenderTarget({
+            colorBuffer: texture,
+            depth: true
+        });
+
+        let world = game.app.scene.layers.getLayerByName("World");
+        world.renderTarget = renderTarget;
+
+        let ps = this.app.assets.find("blurPS.glsl","shader").resource;
+        let shader = pc.shaderChunks.createShaderFromCode(device, pc.shaderChunks.fullscreenQuadVS, ps, "blur");
+
+        var ui = game.app.scene.layers.getLayerById(pc.LAYERID_UI);
+
+        ui.onPreRender = function(cameraPass) {
+            ui.cameras[cameraPass].clearColorBuffer = false;
+        };
+
+        ui.onPostRender = function(cameraPass) {
+            device.copyRenderTarget(renderTarget, null, true, false);
+            ui.cameras[cameraPass].clearColorBuffer = true;
+        };
+    }
+
     hierarchy() {
-        this.camera.addComponent('camera', {
-            clearColor: new pc.Color(...this.config.camera.clearColor)
-        });
 
-        this.light.addComponent('light', {
+        return new Promise(resolve => {
+            this.screen.addComponent("screen", {
+                referenceResolution: pc.Vec2(1280, 720),
+                scaleMode: pc.SCALEMODE_BLEND,
+                scaleBlend: 0.5,
+                screenSpace: true
+            });
 
-        });
+            this.app.root.addChild(this.screen);
 
-        this.app.root.addChild(this.camera);
-        this.camera.addChild(this.light);
+            //this.app.scene.gammaCorrection = pc.GAMMA_SRGB;
+            this.app.scene.fog = pc.FOG_LINEAR;
+            this.app.scene.fogStart = 20;
+            this.app.scene.fogEnd = 50;
+            this.app.scene.exposure = 0.8;
+            this.app.scene.fogColor =  new pc.Color().fromString("#312E57").darken(-7);
+            this.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
+
+            this.camera.addComponent('camera', {
+                clearColor: new pc.Color(...this.config.camera.clearColor)
+            });
+
+            this.light.addComponent('light', {
+                castShadows: false,
+                type: pc.LIGHTTYPE_DIRECTIONAL,
+                shadowUpdateMode: pc.SHADOWUPDATE_REALTIME,
+                shadowResolution: 256,
+                intensity: 0.65,
+                shadowDistance: 16,
+                shadowBias: 0.04,
+                normalOffsetBias: 0.04,
+                shadowType: pc.SHADOW_PCF5,
+                //vsmBlurMode: pc.BLUR_GAUSSIAN,
+                //vsmBlurSize: 2
+            });
+
+            this.light.setEulerAngles(152, -75, -121);
+
+            this.app.root.addChild(this.camera);
+            this.camera.addChild(this.light);
+
+            this.camera.setPosition(0, 0, -0.6);
+            this.camera.setEulerAngles(0, 180, 0)
+
+            this.initBall();
+            this.initBackground();
+            //this.initBlur();
+
+            Application.getAsset("blur.js", "script").then(asset => {
+                //this.app.root.addComponent("script");
+                //this.app.root.script.create("blur");
+            });
+
+            Application.getAsset("fps.js", "script").then(asset => {
+                //this.app.root.addComponent("script");
+                //this.app.root.script.create("fps");
+            });
+
+            Application.getAsset("icons.png", "texture").then(asset => {
+                this.initIcons(asset);
+                resolve();
+            })
+        })
+
+
+    }
+
+    static getAsset(name, type) {
+
+        return new Promise((resolve, reject) => {
+
+            let asset = game.app.assets.find(name, type);
+
+            if (asset.resource)
+                resolve(asset);
+            else {
+                asset.once("load", () => {
+                    resolve(asset);
+                });
+                game.app.assets.load(asset);
+            }
+        })
     }
 
     static loadAsset(url, type) {
@@ -96,6 +369,11 @@ export default class Application {
                 return resolve(asset);
             });
         });
+    }
+
+    static getEmissiveColor(color) {
+        if (color instanceof pc.Color) color = color.toString();
+        let colorString = tinycolor(color).darken(40).toString();
     }
 }
 

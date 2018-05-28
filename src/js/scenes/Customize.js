@@ -1,34 +1,15 @@
 import Scene from "./../Scene";
+import Animation from "../Animation";
+import Application from "../Application";
 
 
 export default class Customize extends Scene {
 
-    buttonConfig = {
-        type: pc.ELEMENTTYPE_TEXT,
-        anchor: new pc.Vec4(0.5, 0.5, 0.5, 0.5),
-        pivot: new pc.Vec2(0.5, 0.5),
-        alignment: new pc.Vec2(0.5, 0.5),
-        useInput: true,
-        fontAsset : 1,
-        color: new pc.Color(...game.config.mainMenu.color),
-        fontSize: game.config.mainMenu.fontSize
-    };
-
     title = new pc.Entity("title");
     backBtn = new pc.Entity("backBtn");
-    screen = new pc.Entity("screen");
 
-    constructor(app) {
-        super(app);
-
-        this.screen.addComponent("screen", {
-            referenceResolution: pc.Vec2(1280, 720),
-            scaleMode: pc.SCALEMODE_BLEND,
-            scaleBlend: 1,
-            screenSpace: true
-        });
-
-        this.root.addChild(this.screen);
+    constructor(app, game) {
+        super(app, game);
 
         this.title.addComponent("element", {
             type: pc.ELEMENTTYPE_TEXT,
@@ -39,27 +20,42 @@ export default class Customize extends Scene {
             fontAsset : 1,
             color: new pc.Color(...game.config.customize.ui.color),
             fontSize: game.config.customize.ui.fontSize,
-            text: game.config.customize.ui.titleText
+            text: game.config.customize.ui.titleText,
+            opacity: 0,
         });
 
         this.backBtn.addComponent("element", {
-            type: pc.ELEMENTTYPE_TEXT,
+            type: pc.ELEMENTTYPE_IMAGE,
             anchor: new pc.Vec4(0, 1, 0, 1),
             pivot: new pc.Vec2(0, 1),
-            alignment: new pc.Vec2(0.5, 0.5),
             useInput: true,
-            fontAsset : 1,
-            color: new pc.Color(...game.config.customize.ui.color),
-            fontSize: game.config.customize.ui.backBtnFontSize,
-            text: game.config.customize.ui.backBtnText
+            width: 48,
+            height: 48,
+            opacity: 0,
+            sprite: game.iconsSprite,
+            spriteFrame: Application.ICON_BACK
         });
 
-
-        this.screen.addChild(this.title);
         this.screen.addChild(this.backBtn);
+        this.backBtn.setPosition(-1,1, 0);
+        this.backBtn.translateLocal(20, -20, 0);
+
         this.title.setPosition(0,0.6,0);
-        this.backBtn.setPosition(-0.9,0.9,0);
         this.events();
+
+        game.cameraTargetPosition = new pc.Vec3(0, 2, -6);
+
+        let animation = { opacity: 0};
+        anime({
+            targets:animation,
+            opacity: 1,
+            duration: 200,
+            easing: "linear",
+            update: anime => {
+                this.backBtn.element.opacity = animation.opacity;
+            }
+        });
+
     }
 
     events() {
@@ -69,8 +65,22 @@ export default class Customize extends Scene {
     hide() {
         return new Promise(resolve => {
             this.backBtn.element.off();
-            this.root.destroy();
-            return resolve();
+
+            let animation = { opacity: 1};
+            anime({
+                targets:animation,
+                opacity: 0,
+                duration: 200,
+                easing: "linear",
+                update: anime => {
+                    this.backBtn.element.opacity = animation.opacity;
+                    this.title.element.opacity = animation.opacity;
+                },
+                complete: anime => {
+                    this.root.destroy();
+                    return resolve();
+                }
+            });
         })
     }
 

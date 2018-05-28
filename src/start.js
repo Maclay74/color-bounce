@@ -119,7 +119,7 @@ try {
 
 }
 
-app.configure("/config/playcanvas.json", function (err) {
+app.configure("config/playcanvas.json", function (err) {
     if (err) {
         console.error(err);
     }
