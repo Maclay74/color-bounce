@@ -1,6 +1,5 @@
 .**/
 /node_modules
-dist/**
 src/libs/**
 
 !src/libs/playcanvas/playcanvas-stable.js

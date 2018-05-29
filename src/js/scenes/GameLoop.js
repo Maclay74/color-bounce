@@ -616,6 +616,12 @@ export default class GameLoop extends Scene {
                         this.yellowButton.inner.element.opacity = animation.opacity;
                         this.buttonsDock.element.opacity = animation.opacity;
 
+                        // Probably already hidden
+                        if (this.scoreLabel.element.opacity > 0) {
+                            this.scoreLabel.element.opacity = animation.opacity;
+                            this.scoreValueLabel.element.opacity = animation.opacity;
+                            this.pauseButton.element.opacity = animation.opacity;
+                        }
 
                     },
                     complete: anime => {
@@ -626,6 +632,9 @@ export default class GameLoop extends Scene {
                         this.yellowButton.destroy();
                         this.yellowButton.inner.destroy();
                         this.buttonsDock.destroy();
+                        this.scoreLabel.destroy();
+                        this.scoreValueLabel.destroy();
+                        this.pauseButton.destroy();
                         resolveUI();
                     }
                 });

@@ -1,0 +1,54 @@
+{
+  "camera": {
+    "clearColor": [0.28, 0.24, 0.42]
+  },
+  "mainMenu": {
+    "color": [1,1,1],
+    "startNewGameText": "Start game",
+    "customizeText": "Customize",
+    "creditsText": "Credits",
+    "fontSize": 24
+  },
+
+  "customize": {
+    "ui": {
+      "fontSize": 24,
+      "backBtnFontSize": 14,
+      "color": [1,1,1],
+      "titleText": "Customize",
+      "backBtnText": "Back"
+    }
+  },
+
+  "gameLoop": {
+    "ui": {
+      "fontSize": 48,
+      "color": [1,1,1],
+      "scoreText": "SCORE"
+    },
+    "ball": {
+      "radius": 0.5,
+      "mass": 1,
+      "startColor": [0,0.67,1]
+    },
+
+    "level": {
+      "elements": {
+        "panel": {
+          "blockWidth": 6,
+          "blockHeight": 3.5,
+          "blockDepth": 0.5,
+          "restitution": 0
+        },
+
+        "safeZone": {
+          "blockWidth": 15,
+          "blockHeight": 3.5,
+          "blockDepth": 0.5,
+          "restitution": 0.3,
+          "color": [1,1,1]
+        }
+      }
+    }
+  }
+}
