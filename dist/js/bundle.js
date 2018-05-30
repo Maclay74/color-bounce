@@ -1861,8 +1861,7 @@ function (_Scene) {
     value: function checkColor(color) {
       var ballColor = game.ball.visual.model.model.meshInstances[0].material.diffuse;
 
-      if (ballColor.toString() !== color.toString()) {
-        this.gameover();
+      if (ballColor.toString() !== color.toString()) {//this.gameover();
       } else {
         this.score++;
         this.scoreValueLabel.element.text = this.score;
@@ -2032,6 +2031,11 @@ function (_Scene) {
       newColor.r = r / colors.length;
       newColor.g = g / colors.length;
       newColor.b = b / colors.length;
+
+      if (newColor.toString() === "#aa8779") {
+        newColor = new pc.Color(1, 1, 1, 1);
+      }
+
       return newColor;
     }
   }]);

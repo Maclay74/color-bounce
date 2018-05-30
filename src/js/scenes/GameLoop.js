@@ -504,6 +504,9 @@ export default class GameLoop extends Scene {
         newColor.g = g / colors.length;
         newColor.b = b / colors.length;
 
+        if (newColor.toString() === "#aa8779") {
+            newColor = new pc.Color(1,1,1,1);
+        }
         return newColor;
 
     }
