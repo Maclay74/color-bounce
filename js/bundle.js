@@ -130,7 +130,7 @@ function () {
 
     this.events(); // Get config and apply some settings
 
-    this.loadConfig().then(this.initVk).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
+    this.loadConfig().then(this.initVk.bind(this)).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
       app.fire("game:menu");
     });
   }
