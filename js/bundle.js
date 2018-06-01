@@ -218,6 +218,13 @@ function () {
   }, {
     key: "initBall",
     value: function initBall() {
+      var _this4 = this;
+
+      this.getVkVar("ballStyle").then(function (ballStyle) {
+        console.log(ballStyle);
+        if (ballStyle === "") _this4.setVkVar("ballStyle", 0);
+        ballStyle = 0;
+      });
       this.ball.visual = new pc.Entity("visual");
       this.ball.contact = null;
       this.ball.visual.addComponent("model", {
@@ -252,7 +259,7 @@ function () {
   }, {
     key: "initBackground",
     value: function initBackground() {
-      var _this4 = this;
+      var _this5 = this;
 
       this.backgroundLayer = new pc.Layer("background");
       this.backgroundLayer.name = "background";
@@ -269,7 +276,7 @@ function () {
       });
       this.backgroundImage = new pc.Entity("background-image");
       Application.getAsset("background.png", "texture").then(function (asset) {
-        _this4.backgroundImage.addComponent("element", {
+        _this5.backgroundImage.addComponent("element", {
           type: pc.ELEMENTTYPE_IMAGE,
           anchor: new pc.Vec4(0, 0, 1, 1),
           pivot: new pc.Vec2(0.5, 0.5),
@@ -277,19 +284,19 @@ function () {
           layers: [5]
         });
 
-        _this4.backgroundScreen.addChild(_this4.backgroundImage);
+        _this5.backgroundScreen.addChild(_this5.backgroundImage);
       });
       this.app.root.addChild(this.backgroundScreen);
     }
   }, {
     key: "initIcons",
     value: function initIcons(asset) {
-      var _this5 = this;
+      var _this6 = this;
 
       var setIcon = function setIcon(rect, name) {
-        var id = _this5.iconsSprite.frameKeys.length;
+        var id = _this6.iconsSprite.frameKeys.length;
 
-        _this5.iconsAtlas.setFrame(id, {
+        _this6.iconsAtlas.setFrame(id, {
           rect: _construct(pc.Vec4, _toConsumableArray(rect)),
           pivot: new pc.Vec2(0.5, 0.5),
           border: new pc.Vec4(0, 0, 0, 0)
@@ -297,7 +304,7 @@ function () {
 
         Application[name] = id;
 
-        _this5.iconsSprite.frameKeys.push(id.toString());
+        _this6.iconsSprite.frameKeys.push(id.toString());
       };
 
       if (this.iconsSprite) return;
@@ -329,7 +336,7 @@ function () {
   }, {
     key: "initBlur",
     value: function initBlur() {
-      var _this6 = this;
+      var _this7 = this;
 
       this.blurExtrudeLayer = new pc.Layer("blur-extrude");
       this.blurExtrudeLayer.name = "blur-extrude";
@@ -350,36 +357,36 @@ function () {
       });
 
       this.blurExtrudeLayer.onPreRender = function (cameraIndex) {
-        _this6.blurExtrudeLayer.cameras[cameraIndex].clearColor = new pc.Color(0.5, 0.5, 0.5, 0);
+        _this7.blurExtrudeLayer.cameras[cameraIndex].clearColor = new pc.Color(0.5, 0.5, 0.5, 0);
       };
     }
   }, {
     key: "hierarchy",
     value: function hierarchy() {
-      var _this7 = this;
+      var _this8 = this;
 
       return new Promise(function (resolve) {
-        _this7.screen.addComponent("screen", {
+        _this8.screen.addComponent("screen", {
           referenceResolution: pc.Vec2(1280, 720),
           scaleMode: pc.SCALEMODE_BLEND,
           scaleBlend: 0.5,
           screenSpace: true
         });
 
-        _this7.app.root.addChild(_this7.screen);
+        _this8.app.root.addChild(_this8.screen);
 
-        _this7.app.scene.fog = pc.FOG_LINEAR;
-        _this7.app.scene.fogStart = 20;
-        _this7.app.scene.fogEnd = 50;
-        _this7.app.scene.exposure = 0.8;
-        _this7.app.scene.fogColor = new pc.Color().fromString("#312E57").darken(-7);
-        _this7.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
+        _this8.app.scene.fog = pc.FOG_LINEAR;
+        _this8.app.scene.fogStart = 20;
+        _this8.app.scene.fogEnd = 50;
+        _this8.app.scene.exposure = 0.8;
+        _this8.app.scene.fogColor = new pc.Color().fromString("#312E57").darken(-7);
+        _this8.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
 
-        _this7.camera.addComponent('camera', {
+        _this8.camera.addComponent('camera', {
           clearColor: new pc.Color(1, 1, 1, 1)
         });
 
-        _this7.light.addComponent('light', {
+        _this8.light.addComponent('light', {
           castShadows: true,
           type: pc.LIGHTTYPE_DIRECTIONAL,
           shadowUpdateMode: pc.SHADOWUPDATE_REALTIME,
@@ -391,31 +398,31 @@ function () {
           vsmBlurSize: 15
         });
 
-        _this7.light.setEulerAngles(152, -75, -121);
+        _this8.light.setEulerAngles(152, -75, -121);
 
-        _this7.app.root.addChild(_this7.camera);
+        _this8.app.root.addChild(_this8.camera);
 
-        _this7.camera.addChild(_this7.light);
+        _this8.camera.addChild(_this8.light);
 
-        _this7.camera.setPosition(0, 0, -0.6);
+        _this8.camera.setPosition(0, 0, -0.6);
 
-        _this7.camera.setEulerAngles(0, 180, 0);
+        _this8.camera.setEulerAngles(0, 180, 0);
 
-        _this7.initBall();
+        _this8.initBall();
 
-        _this7.initBackground();
+        _this8.initBackground();
 
-        _this7.initBlur();
+        _this8.initBlur();
 
-        _this7.app.root.addComponent("script");
+        _this8.app.root.addComponent("script");
 
         Application.getAsset("blur.js", "script").then(function (asset) {
-          _this7.app.root.script.create("blur");
+          _this8.app.root.script.create("blur");
         });
         Application.getAsset("fps.js", "script").then(function (asset) {//this.app.root.script.create("fps");
         });
         Application.getAsset("icons.png", "texture").then(function (asset) {
-          _this7.initIcons(asset);
+          _this8.initIcons(asset);
 
           resolve();
         });
@@ -435,24 +442,17 @@ function () {
   }, {
     key: "initVk",
     value: function initVk() {
-      var _this8 = this;
-
       if (!VK) {
         throw new Error("VK isn't available");
       }
 
-      var vkPromise = new Promise(function (resolve, reject) {
+      return new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
         VK.init(function () {
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
         }, '5.60');
-      });
-      vkPromise.then(function () {
-        _this8.getVkVar("ballStyle").then(function (ballStyle) {
-          console.log(ballStyle);
-        });
       });
     }
   }, {
@@ -461,6 +461,18 @@ function () {
       return new Promise(function (resolve) {
         VK.api("storage.get", {
           key: key
+        }).then(function (response) {
+          return resolve(response.response);
+        });
+      });
+    }
+  }, {
+    key: "setVkVar",
+    value: function setVkVar(key, value) {
+      return new Promise(function (resolve) {
+        VK.api("storage.set", {
+          key: key,
+          value: value
         }).then(function (response) {
           return resolve(response.response);
         });
