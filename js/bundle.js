@@ -435,21 +435,25 @@ function () {
   }, {
     key: "initVk",
     value: function initVk() {
-      var _this8 = this;
-
       if (!VK) {
         throw new Error("VK isn't available");
       }
 
-      return new Promise(function (resolve, reject) {
+      var vkPromise = new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
         VK.init(function () {
-          var vkParams = _this8.getUrlParams();
-
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
         }, '5.60');
+      });
+      var ballStyle = VK.api("storage.get", {
+        key: "ball"
+      });
+      vkPromise.then(function () {
+        ballStyle.then(function (response) {
+          console.log(response);
+        });
       });
     }
   }, {
