@@ -446,7 +446,6 @@ function () {
         VK.init(function () {
           var vkParams = _this8.getUrlParams();
 
-          console.log("vk is done!");
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
