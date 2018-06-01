@@ -435,6 +435,8 @@ function () {
   }, {
     key: "initVk",
     value: function initVk() {
+      var _this8 = this;
+
       if (!VK) {
         throw new Error("VK isn't available");
       }
@@ -442,7 +444,7 @@ function () {
       return new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
         VK.init(function () {
-          //console.log(this.getUrlParams())
+          console.log(_this8.getUrlParams());
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
