@@ -450,7 +450,7 @@ function () {
         }, '5.60');
       });
       vkPromise.then(function () {
-        _this8.getVkVar("ball").then(function (ballStyle) {
+        _this8.getVkVar("ballStyle").then(function (ballStyle) {
           console.log(ballStyle);
         });
       });
