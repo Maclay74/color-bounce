@@ -443,9 +443,9 @@ function () {
 
       return new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
+        var self = _this8;
         VK.init(function () {
-          console.log(_this8); //console.log(this.getUrlParams())
-
+          console.log(self.getUrlParams());
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
