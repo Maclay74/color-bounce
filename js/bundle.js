@@ -445,7 +445,8 @@ function () {
         if (!VK) reject("VK isn't available");
         var self = _this8;
         VK.init(function () {
-          console.log(self.getUrlParams());
+          var vkParams = self.getUrlParams();
+          console.log(VK._bridge);
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
