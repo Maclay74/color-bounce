@@ -220,8 +220,7 @@ function () {
     value: function initBall() {
       var _this4 = this;
 
-      this.getVkVar("ballStyle").then(function (ballStyle) {
-        console.log(ballStyle);
+      this.getVkVar("ballStyle", 0).then(function (ballStyle) {
         if (ballStyle === "") _this4.setVkVar("ballStyle", 0);
         ballStyle = 0;
       });
@@ -457,11 +456,19 @@ function () {
     }
   }, {
     key: "getVkVar",
-    value: function getVkVar(key) {
+    value: function getVkVar(key, defaultValue) {
+      var _this9 = this;
+
       return new Promise(function (resolve) {
         VK.api("storage.get", {
           key: key
         }).then(function (response) {
+          if (response.response === "") {
+            _this9.setVkVar(key, defaultValue);
+
+            return resolve(defaultValue);
+          }
+
           return resolve(response.response);
         });
       });
