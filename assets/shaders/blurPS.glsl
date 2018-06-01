@@ -21,9 +21,9 @@ varying vec2 vUv0;
 
 void main() {
 
-    //if (direction.x > 0.0 || direction.y > 0.0)
-    //    gl_FragColor = blur(uColorBuffer, vUv0, resolution.xy, direction);
-    //else
+    if (direction.x > 0.0 || direction.y > 0.0)
+        gl_FragColor = blur(uColorBuffer, vUv0, resolution.xy, direction);
+    else
         gl_FragColor = texture2D(uColorBuffer, vUv0);
 }
 

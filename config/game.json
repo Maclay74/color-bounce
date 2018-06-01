@@ -12,10 +12,10 @@
 
   "customize": {
     "ui": {
-      "fontSize": 24,
+      "fontSize": 48,
       "backBtnFontSize": 14,
       "color": [1,1,1],
-      "titleText": "Customize",
+      "titleText": "CUSTOMIZE",
       "backBtnText": "Back"
     }
   },

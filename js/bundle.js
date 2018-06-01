@@ -73,6 +73,14 @@ var _GameLoop = _interopRequireDefault(require("./scenes/GameLoop"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+
+function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
+
 function _construct(Parent, args, Class) { if (typeof Reflect !== "undefined" && Reflect.construct) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Parent.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
 
 function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
@@ -101,8 +109,6 @@ function () {
 
     _defineProperty(this, "configFile", "config/game.json");
 
-    _defineProperty(this, "preload", [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"]]);
-
     _defineProperty(this, "camera", new pc.Entity('camera'));
 
     _defineProperty(this, "cameraTargetPosition", new pc.Vec3());
@@ -124,7 +130,7 @@ function () {
 
     this.events(); // Get config and apply some settings
 
-    this.loadConfig().then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
+    this.loadConfig().then(this.initVk).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
       app.fire("game:menu");
     });
   }
@@ -163,6 +169,19 @@ function () {
       this.app.on("game:customize", function () {
         _this2.scene.hide().then(function () {
           _this2.app.fire("scene:set", _Customize.default);
+        });
+      });
+      this.app.on("game:customize:ball", function () {
+        _this2.scene.hide().then(function () {
+          _this2.app.fire("scene:set", CustomizeBall);
+        });
+      });
+      this.app.on("game:customize:ball", function () {
+        //todo implement that
+        return;
+
+        _this2.scene.hide().then(function () {
+          _this2.app.fire("scene:set", CustomizeBackground);
         });
       });
       this.app.on("update", function (dt) {
@@ -297,17 +316,27 @@ function () {
       setIcon([79, 180, 74, 74], "ICON_BLUE_INNER");
       setIcon([79, 94, 74, 74], "ICON_RED_INNER");
       setIcon([79, 8, 74, 74], "ICON_YELLOW_INNER");
-      setIcon([246, 177, 242, 80], "ICON_BLUE_BUTTON");
-      setIcon([246, 92, 242, 80], "ICON_RED_BUTTON");
-      setIcon([246, 5, 242, 80], "ICON_YELLOW_BUTTON");
+      setIcon([246, 177, 241, 80], "ICON_BLUE_BUTTON");
+      setIcon([246, 92, 241, 80], "ICON_RED_BUTTON");
+      setIcon([246, 5, 241, 80], "ICON_YELLOW_BUTTON");
       setIcon([106, 267, 60, 60], "ICON_PLAY");
       setIcon([166, 267, 60, 60], "ICON_CUSTOMIZE");
       setIcon([226, 267, 60, 60], "ICON_CREDITS");
+      setIcon([286, 267, 60, 60], "ICON_BALL");
+      setIcon([346, 267, 60, 60], "ICON_BACKGROUND");
       this.iconsSprite.endUpdate();
     }
   }, {
     key: "initBlur",
     value: function initBlur() {
+      var _this6 = this;
+
+      this.blurExtrudeLayer = new pc.Layer("blur-extrude");
+      this.blurExtrudeLayer.name = "blur-extrude";
+      this.blurExtrudeLayer.addCamera(this.camera.camera);
+      this.blurExtrudeLayer.addLight(this.light);
+      game.app.scene.layers.insertOpaque(this.blurExtrudeLayer, 11);
+      game.app.scene.layers.insertTransparent(this.blurExtrudeLayer, 11);
       var device = this.app.graphicsDevice;
       var texture = new pc.Texture(device, {
         width: device.width,
@@ -315,93 +344,115 @@ function () {
         format: pc.PIXELFORMAT_R8_G8_B8_A8,
         mipmaps: false
       });
-      var renderTarget = new pc.RenderTarget({
+      this.blurExtrudeLayer.renderTarget = new pc.RenderTarget({
         colorBuffer: texture,
         depth: true
       });
-      var world = game.app.scene.layers.getLayerByName("World");
-      world.renderTarget = renderTarget;
-      var ps = this.app.assets.find("blurPS.glsl", "shader").resource;
-      var shader = pc.shaderChunks.createShaderFromCode(device, pc.shaderChunks.fullscreenQuadVS, ps, "blur");
-      var ui = game.app.scene.layers.getLayerById(pc.LAYERID_UI);
 
-      ui.onPreRender = function (cameraPass) {
-        ui.cameras[cameraPass].clearColorBuffer = false;
-      };
-
-      ui.onPostRender = function (cameraPass) {
-        device.copyRenderTarget(renderTarget, null, true, false);
-        ui.cameras[cameraPass].clearColorBuffer = true;
+      this.blurExtrudeLayer.onPreRender = function (cameraIndex) {
+        _this6.blurExtrudeLayer.cameras[cameraIndex].clearColor = new pc.Color(0.5, 0.5, 0.5, 0);
       };
     }
   }, {
     key: "hierarchy",
     value: function hierarchy() {
-      var _this6 = this;
+      var _this7 = this;
 
       return new Promise(function (resolve) {
-        _this6.screen.addComponent("screen", {
+        _this7.screen.addComponent("screen", {
           referenceResolution: pc.Vec2(1280, 720),
           scaleMode: pc.SCALEMODE_BLEND,
           scaleBlend: 0.5,
           screenSpace: true
         });
 
-        _this6.app.root.addChild(_this6.screen); //this.app.scene.gammaCorrection = pc.GAMMA_SRGB;
+        _this7.app.root.addChild(_this7.screen);
 
+        _this7.app.scene.fog = pc.FOG_LINEAR;
+        _this7.app.scene.fogStart = 20;
+        _this7.app.scene.fogEnd = 50;
+        _this7.app.scene.exposure = 0.8;
+        _this7.app.scene.fogColor = new pc.Color().fromString("#312E57").darken(-7);
+        _this7.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
 
-        _this6.app.scene.fog = pc.FOG_LINEAR;
-        _this6.app.scene.fogStart = 20;
-        _this6.app.scene.fogEnd = 50;
-        _this6.app.scene.exposure = 0.8;
-        _this6.app.scene.fogColor = new pc.Color().fromString("#312E57").darken(-7);
-        _this6.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
-
-        _this6.camera.addComponent('camera', {
-          clearColor: _construct(pc.Color, _toConsumableArray(_this6.config.camera.clearColor))
+        _this7.camera.addComponent('camera', {
+          clearColor: new pc.Color(1, 1, 1, 1)
         });
 
-        _this6.light.addComponent('light', {
-          castShadows: false,
+        _this7.light.addComponent('light', {
+          castShadows: true,
           type: pc.LIGHTTYPE_DIRECTIONAL,
           shadowUpdateMode: pc.SHADOWUPDATE_REALTIME,
-          shadowResolution: 256,
+          shadowResolution: 512,
           intensity: 0.65,
           shadowDistance: 16,
-          shadowBias: 0.04,
-          normalOffsetBias: 0.04,
-          shadowType: pc.SHADOW_PCF5 //vsmBlurMode: pc.BLUR_GAUSSIAN,
-          //vsmBlurSize: 2
-
+          shadowType: pc.SHADOW_VSM16,
+          vsmBlurMode: pc.BLUR_GAUSSIAN,
+          vsmBlurSize: 15
         });
 
-        _this6.light.setEulerAngles(152, -75, -121);
+        _this7.light.setEulerAngles(152, -75, -121);
 
-        _this6.app.root.addChild(_this6.camera);
+        _this7.app.root.addChild(_this7.camera);
 
-        _this6.camera.addChild(_this6.light);
+        _this7.camera.addChild(_this7.light);
 
-        _this6.camera.setPosition(0, 0, -0.6);
+        _this7.camera.setPosition(0, 0, -0.6);
 
-        _this6.camera.setEulerAngles(0, 180, 0);
+        _this7.camera.setEulerAngles(0, 180, 0);
 
-        _this6.initBall();
+        _this7.initBall();
 
-        _this6.initBackground(); //this.initBlur();
+        _this7.initBackground();
 
+        _this7.initBlur();
 
-        Application.getAsset("blur.js", "script").then(function (asset) {//this.app.root.addComponent("script");
-          //this.app.root.script.create("blur");
+        _this7.app.root.addComponent("script");
+
+        Application.getAsset("blur.js", "script").then(function (asset) {
+          _this7.app.root.script.create("blur");
         });
-        Application.getAsset("fps.js", "script").then(function (asset) {//this.app.root.addComponent("script");
-          //this.app.root.script.create("fps");
+        Application.getAsset("fps.js", "script").then(function (asset) {//this.app.root.script.create("fps");
         });
         Application.getAsset("icons.png", "texture").then(function (asset) {
-          _this6.initIcons(asset);
+          _this7.initIcons(asset);
 
           resolve();
         });
       });
+    }
+  }, {
+    key: "getUrlParams",
+    value: function getUrlParams() {
+      return _toConsumableArray(new URLSearchParams(document.location.search).entries()).reduce(function (q, _ref) {
+        var _ref2 = _slicedToArray(_ref, 2),
+            k = _ref2[0],
+            v = _ref2[1];
+
+        return Object.assign(q, _defineProperty({}, k, v));
+      }, {});
+    }
+  }, {
+    key: "initVk",
+    value: function initVk() {
+      if (!VK) {
+        throw new Error("VK isn't available");
+      }
+
+      return new Promise(function (resolve, reject) {
+        if (!VK) reject("VK isn't available");
+        VK.init(function () {
+          //console.log(this.getUrlParams())
+          return resolve(VK);
+        }, function () {
+          return reject("VK loading failed");
+        }, '5.60');
+      });
+    }
+  }, {
+    key: "preload",
+    get: function get() {
+      return [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"]];
     }
   }], [{
     key: "getAsset",
@@ -1258,7 +1309,7 @@ function (_Scene) {
 
     _this.title.addComponent("element", {
       type: pc.ELEMENTTYPE_TEXT,
-      anchor: new pc.Vec4(0.5, 0.5, 0.5, 0.5),
+      anchor: new pc.Vec4(0.0, 0.0, 0, 0),
       pivot: new pc.Vec2(0.5, 0.5),
       alignment: new pc.Vec2(0.5, 0.5),
       useInput: true,
@@ -1287,11 +1338,20 @@ function (_Scene) {
 
     _this.backBtn.translateLocal(20, -20, 0);
 
+    _this.screen.addChild(_this.title);
+
     _this.title.setPosition(0, 0.6, 0);
 
     _this.events();
 
-    game.cameraTargetPosition = new pc.Vec3(0, 2, -6);
+    _this.ballBtn = _this.createBlockButton(_Application.default.ICON_BALL, "BALL", _Application.default.ICON_BLUE_BUTTON);
+    _this.backgroundBtn = _this.createBlockButton(_Application.default.ICON_BACKGROUND, "BACKGROUND", _Application.default.ICON_YELLOW_BUTTON);
+
+    _this.ballBtn.translateLocal(0, -50, 0);
+
+    _this.backgroundBtn.translateLocal(0, -137, 0);
+
+    game.cameraTargetPosition = new pc.Vec3(0, 1.8, -6);
     var animation = {
       opacity: 0
     };
@@ -1302,6 +1362,13 @@ function (_Scene) {
       easing: "linear",
       update: function update(anime) {
         _this.backBtn.element.opacity = animation.opacity;
+        _this.title.element.opacity = animation.opacity;
+        _this.ballBtn.element.opacity = animation.opacity;
+        _this.ballBtn.icon.element.opacity = animation.opacity;
+        _this.ballBtn.text.element.opacity = animation.opacity;
+        _this.backgroundBtn.element.opacity = animation.opacity;
+        _this.backgroundBtn.icon.element.opacity = animation.opacity;
+        _this.backgroundBtn.text.element.opacity = animation.opacity;
       }
     });
     return _this;
@@ -1314,6 +1381,12 @@ function (_Scene) {
 
       this.backBtn.element.on("click", function (event) {
         return _this2.app.fire("game:menu");
+      });
+      this.ballBtn.element.on("click", function (event) {
+        return _this2.app.fire("game:customize:ball");
+      });
+      this.backgroundBtn.element.on("click", function (event) {
+        return _this2.app.fire("game:customize:background");
       });
     }
   }, {
@@ -1335,9 +1408,31 @@ function (_Scene) {
           update: function update(anime) {
             _this3.backBtn.element.opacity = animation.opacity;
             _this3.title.element.opacity = animation.opacity;
+            _this3.ballBtn.element.opacity = animation.opacity;
+            _this3.ballBtn.icon.element.opacity = animation.opacity;
+            _this3.ballBtn.text.element.opacity = animation.opacity;
+            _this3.backgroundBtn.element.opacity = animation.opacity;
+            _this3.backgroundBtn.icon.element.opacity = animation.opacity;
+            _this3.backgroundBtn.text.element.opacity = animation.opacity;
           },
           complete: function complete(anime) {
             _this3.root.destroy();
+
+            _this3.backBtn.destroy();
+
+            _this3.title.destroy();
+
+            _this3.ballBtn.destroy();
+
+            _this3.ballBtn.icon.destroy();
+
+            _this3.ballBtn.text.destroy();
+
+            _this3.backgroundBtn.destroy();
+
+            _this3.backgroundBtn.icon.destroy();
+
+            _this3.backgroundBtn.text.destroy();
 
             return resolve();
           }
@@ -2032,6 +2127,11 @@ function (_Scene) {
       newColor.r = r / colors.length;
       newColor.g = g / colors.length;
       newColor.b = b / colors.length;
+
+      if (newColor.toString() === "#aa8779") {
+        newColor = new pc.Color(1, 1, 1, 1);
+      }
+
       return newColor;
     }
   }]);
@@ -2233,21 +2333,37 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
 
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _get(target, property, receiver) { if (typeof Reflect !== "undefined" && Reflect.get) { _get = Reflect.get; } else { _get = function _get(target, property, receiver) { var base = _superPropBase(target, property); if (!base) return; var desc = Object.getOwnPropertyDescriptor(base, property); if (desc.get) { return desc.get.call(receiver); } return desc.value; }; } return _get(target, property, receiver || target); }
+
+function _superPropBase(object, property) { while (!Object.prototype.hasOwnProperty.call(object, property)) { object = _getPrototypeOf(object); if (object === null) break; } return object; }
 
 function _getPrototypeOf(o) { _getPrototypeOf = Object.getPrototypeOf || function _getPrototypeOf(o) { return o.__proto__; }; return _getPrototypeOf(o); }
-
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var PauseMenu =
 /*#__PURE__*/
 function (_Scene) {
+  _createClass(PauseMenu, [{
+    key: "createBlockButton",
+    value: function createBlockButton(icon, text, background) {
+      var button = _get(_getPrototypeOf(PauseMenu.prototype), "createBlockButton", this).call(this, icon, text, background);
+
+      button.element.layers = [6];
+      button.icon.element.layers = [6];
+      button.text.element.layers = [6];
+      return button;
+    }
+  }]);
+
   function PauseMenu(app, game) {
     var _this;
 
@@ -2262,6 +2378,8 @@ function (_Scene) {
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "background", new pc.Entity("pause-background"));
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "title", new pc.Entity("title"));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "blurPower", 2);
 
     _this.background.addComponent("element", {
       type: pc.ELEMENTTYPE_IMAGE,
@@ -2289,7 +2407,8 @@ function (_Scene) {
       color: _construct(pc.Color, _toConsumableArray(game.config.gameLoop.ui.color)),
       fontSize: 48,
       opacity: 0,
-      text: "PAUSE"
+      text: "PAUSE",
+      layers: [6]
     }); // Score value
 
 
@@ -2302,7 +2421,8 @@ function (_Scene) {
       color: _construct(pc.Color, _toConsumableArray(game.config.gameLoop.ui.color)),
       fontSize: game.config.gameLoop.ui.fontSize,
       opacity: 0,
-      text: 0
+      text: 0,
+      layers: [6]
     }); // Score
 
 
@@ -2314,7 +2434,8 @@ function (_Scene) {
       color: new pc.Color().fromString("#8489C0"),
       fontSize: 40,
       text: game.config.gameLoop.ui.scoreText,
-      opacity: 0
+      opacity: 0,
+      layers: [6]
     });
 
     _this.screen.addChild(_this.scoreLabel);
@@ -2344,7 +2465,7 @@ function (_Scene) {
     anime({
       targets: animation,
       opacity: 1,
-      blur: 3,
+      blur: _this.blurPower,
       easing: "linear",
       duration: 300,
       update: function update(anime) {
@@ -2357,7 +2478,8 @@ function (_Scene) {
         _this.scoreLabel.element.opacity = animation.opacity;
         _this.scoreValueLabel.element.opacity = animation.opacity;
         _this.title.element.opacity = animation.opacity;
-        _this.background.element.opacity = animation.opacity / 1.3;
+        game.app.root.script.blur.power = animation.blur;
+        _this.background.element.opacity = animation.opacity / 3;
       }
     });
     return _this;
@@ -2388,7 +2510,8 @@ function (_Scene) {
         _this3.mainMenuBtn.element.off();
 
         var animation = {
-          opacity: 1
+          opacity: 1,
+          blur: _this3.blurPower
         };
         anime({
           targets: animation,
@@ -2403,10 +2526,11 @@ function (_Scene) {
             _this3.mainMenuBtn.element.opacity = animation.opacity;
             _this3.mainMenuBtn.text.element.opacity = animation.opacity;
             _this3.mainMenuBtn.icon.element.opacity = animation.opacity;
-            _this3.background.element.opacity = animation.opacity / 1.3;
+            _this3.background.element.opacity = animation.opacity / 3;
             _this3.title.element.opacity = animation.opacity;
             _this3.scoreLabel.element.opacity = animation.opacity;
             _this3.scoreValueLabel.element.opacity = animation.opacity;
+            game.app.root.script.blur.power = animation.blur;
           },
           complete: function complete(anime) {
             _this3.root.destroy();
