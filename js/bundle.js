@@ -435,6 +435,8 @@ function () {
   }, {
     key: "initVk",
     value: function initVk() {
+      var _this8 = this;
+
       if (!VK) {
         throw new Error("VK isn't available");
       }
@@ -447,12 +449,20 @@ function () {
           return reject("VK loading failed");
         }, '5.60');
       });
-      var ballStyle = VK.api("storage.get", {
-        key: "ball"
-      });
       vkPromise.then(function () {
-        ballStyle.then(function (response) {
-          console.log(response);
+        _this8.getVkVar("ball").then(function (ballStyle) {
+          console.log(ballStyle);
+        });
+      });
+    }
+  }, {
+    key: "getVkVar",
+    value: function getVkVar(key) {
+      return new Promise(function (resolve) {
+        VK.api("storage.get", {
+          key: key
+        }).then(function (response) {
+          return resolve(response.response);
         });
       });
     }
@@ -489,17 +499,6 @@ function () {
     value: function getEmissiveColor(color) {
       if (color instanceof pc.Color) color = color.toString();
       var colorString = tinycolor(color).darken(40).toString();
-    }
-  }, {
-    key: "getVkVar",
-    value: function getVkVar(key) {
-      return new Promise(function (resolve) {
-        VK.api("storage.get", {
-          key: key
-        }).then(function (response) {
-          return resolve(response.response);
-        });
-      });
     }
   }]);
 
