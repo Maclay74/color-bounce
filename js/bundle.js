@@ -443,10 +443,10 @@ function () {
 
       return new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
-        var self = _this8;
         VK.init(function () {
-          var vkParams = self.getUrlParams();
-          console.log(VK._bridge);
+          var vkParams = _this8.getUrlParams();
+
+          console.log("vk is done!");
           return resolve(VK);
         }, function () {
           return reject("VK loading failed");
