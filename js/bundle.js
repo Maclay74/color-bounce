@@ -130,7 +130,8 @@ function () {
 
     this.events(); // Get config and apply some settings
 
-    this.loadConfig().then(this.initVk.bind(this)).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
+    this.loadConfig() //.then(this.initVk.bind(this))
+    .then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
       app.fire("game:menu");
     });
   }
@@ -206,12 +207,13 @@ function () {
       var _this3 = this;
 
       return new Promise(function (resolve) {
-        var requests = _this3.preload.map(function (asset) {
-          return Application.loadAsset.apply(Application, _toConsumableArray(asset));
-        });
-
-        Promise.all(requests).then(function (assets) {
-          return resolve(assets);
+        _this3.getAssets().then(function (assets) {
+          var requests = assets.map(function (asset) {
+            return Application.loadAsset.apply(Application, _toConsumableArray(asset));
+          });
+          Promise.all(requests).then(function (assets) {
+            return resolve(assets);
+          });
         });
       });
     }
@@ -220,16 +222,35 @@ function () {
     value: function initBall() {
       var _this4 = this;
 
-      this.getVkVar("ballStyle", 0).then(function (ballStyle) {
-        if (ballStyle === "") _this4.setVkVar("ballStyle", 0);
-        ballStyle = 0;
-      });
       this.ball.visual = new pc.Entity("visual");
       this.ball.contact = null;
       this.ball.visual.addComponent("model", {
-        type: "sphere",
+        type: "asset",
         castShadows: true,
         receiveShadows: false
+      });
+      this.ball.visual.addComponent("collision", {
+        radius: 0,
+        type: "sphere"
+      });
+      this.ball.visual.addComponent("rigidbody", {
+        type: pc.RIGIDBODY_TYPE_KINEMATIC,
+        linearDamping: 0,
+        angularDamping: 0,
+        linearFactor: new pc.Vec3(0, 0, 0),
+        angularFactor: pc.Vec3.ZERO,
+        friction: 0,
+        restitution: 0
+      });
+      this.ball.visual.removeComponent("collision");
+      Application.getAsset("ball-model.json").then(function (asset) {
+        _this4.ball.visual.removeComponent("model");
+
+        _this4.ball.visual.addComponent("model", {
+          asset: asset
+        });
+
+        _this4.ball.visual.model.model.meshInstances[0].material = material;
       });
       this.ball.addComponent("collision", {
         radius: game.config.gameLoop.ball.radius,
@@ -251,7 +272,6 @@ function () {
       material.ambientTint = true;
       material.emissiveIntensity = 5.34;
       material.update();
-      this.ball.visual.model.model.meshInstances[0].material = material;
       this.ball.addChild(this.ball.visual);
       this.app.root.addChild(this.ball);
     }
@@ -455,16 +475,35 @@ function () {
       });
     }
   }, {
-    key: "getVkVar",
-    value: function getVkVar(key, defaultValue) {
+    key: "getAssets",
+    value: function getAssets() {
       var _this9 = this;
 
       return new Promise(function (resolve) {
+        var assets = [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"]];
+        var ball = new Promise(function (resolve) {
+          _this9.getVkVar("ballStyle", 1).then(function (style) {
+            assets.push(["assets/models/ball/style-" + style + "/ball-model.json", "model"]);
+            return resolve();
+          });
+        });
+        Promise.all([ball]).then(function () {
+          resolve(assets);
+        });
+      });
+    }
+  }, {
+    key: "getVkVar",
+    value: function getVkVar(key, defaultValue) {
+      var _this10 = this;
+
+      return new Promise(function (resolve) {
+        if (!VK._v) return resolve(defaultValue);
         VK.api("storage.get", {
           key: key
         }).then(function (response) {
           if (response.response === "") {
-            _this9.setVkVar(key, defaultValue);
+            _this10.setVkVar(key, defaultValue);
 
             return resolve(defaultValue);
           }
@@ -484,11 +523,6 @@ function () {
           return resolve(response.response);
         });
       });
-    }
-  }, {
-    key: "preload",
-    get: function get() {
-      return [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"]];
     }
   }], [{
     key: "getAsset",
@@ -1570,6 +1604,8 @@ function (_Scene) {
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballSpeed", 7);
 
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballRotationSpeed", 500);
+
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "initElementsCount", 10);
 
     _this.events();
@@ -1597,19 +1633,22 @@ function (_Scene) {
       element.opacity = 0;
     });
 
+    var animation = {
+      opacity: 0,
+      ballAngularVelocity: 0
+    };
     anime({
-      targets: {
-        time: 0
-      },
-      time: 1,
+      targets: animation,
+      opacity: 1,
+      ballAngularVelocity: _this.ballRotationSpeed,
       duration: 300,
       easing: "linear",
       update: function update(anime) {
-        var value = anime.animations[0].currentValue;
-
         _this.elements.forEach(function (element) {
-          element.opacity = value;
+          element.opacity = animation.opacity;
         });
+
+        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.ballAngularVelocity, 0, 0);
       }
     });
     game.app.fire("level:resetBallSpeed");
@@ -1809,7 +1848,7 @@ function (_Scene) {
       this.ballJumpAnimation = anime({
         targets: animate,
         scale: [{
-          value: 0.9,
+          value: 0.8,
           easing: 'easeOutQuint'
         }, {
           value: 1,
@@ -1825,7 +1864,7 @@ function (_Scene) {
         duration: 250,
         delay: 750,
         update: function update(anime) {
-          game.ball.visual.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
+          game.ball.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
           game.ball.visual.setLocalPosition(0, animate.translate, 0);
         }
       });
@@ -1897,6 +1936,7 @@ function (_Scene) {
       });
       game.app.on("level:pause", function () {
         game.ball.rigidbody.disableSimulation();
+        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0);
         if (_this3.ballJumpAnimation) _this3.ballJumpAnimation.pause();
         var pauseScene = new _PauseMenu.default(game.app, game);
         pauseScene.score = _this3.score;
@@ -1918,6 +1958,7 @@ function (_Scene) {
       game.app.on("level:unpause", function (scene) {
         scene.hide().then(function () {
           game.ball.rigidbody.enableSimulation();
+          game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(_this3.ballRotationSpeed, 0, 0);
           if (_this3.ballJumpAnimation) _this3.ballJumpAnimation.play();
         });
         var animation = {
@@ -2061,12 +2102,13 @@ function (_Scene) {
         _this4.eventsOff();
 
         var currentPosition = game.ball.getPosition();
-        game.ball.visual.setLocalScale(1, 1, 1);
+        game.ball.setLocalScale(1, 1, 1);
         if (_this4.ballJumpAnimation) _this4.ballJumpAnimation.pause();
         game.cameraTargetPosition = new pc.Vec3(0, 6, currentPosition.z - 6);
         var animation = {
           opacity: 1,
-          ballPosition: currentPosition.y
+          ballPosition: currentPosition.y,
+          ballRotation: _this4.ballRotationSpeed
         };
         var moveBallPromise = new Promise(function (resolveBall) {
           anime({
@@ -2082,6 +2124,20 @@ function (_Scene) {
               game.camera.setPosition(0, 1, -6);
               game.cameraTargetPosition = new pc.Vec3(0, 1, -6);
               game.ballTargetPosition = new pc.Vec3(0, 0, 0);
+              resolveBall();
+            }
+          });
+        });
+        var rotateBallPromise = new Promise(function (resolveBall) {
+          anime({
+            targets: animation,
+            duration: 1000,
+            ballRotation: 0,
+            easing: "linear",
+            update: function update(anime) {
+              game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.ballRotation, 0, 0);
+            },
+            complete: function complete(anime) {
               resolveBall();
             }
           });
@@ -2136,7 +2192,7 @@ function (_Scene) {
             }
           });
         });
-        Promise.all([moveBallPromise, hideUI]).then(function () {
+        Promise.all([moveBallPromise, rotateBallPromise, hideUI]).then(function () {
           _this4.root.destroy();
 
           resolve();
