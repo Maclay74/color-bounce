@@ -130,8 +130,7 @@ function () {
 
     this.events(); // Get config and apply some settings
 
-    this.loadConfig() //.then(this.initVk.bind(this))
-    .then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
+    this.loadConfig().then(this.initVk.bind(this)).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
       app.fire("game:menu");
     });
   }
@@ -1412,14 +1411,14 @@ function (_Scene) {
 
     _this.title.setPosition(0, 0.6, 0);
 
-    _this.events();
-
     _this.ballBtn = _this.createBlockButton(_Application.default.ICON_BALL, "BALL", _Application.default.ICON_BLUE_BUTTON);
     _this.backgroundBtn = _this.createBlockButton(_Application.default.ICON_BACKGROUND, "BACKGROUND", _Application.default.ICON_YELLOW_BUTTON);
 
     _this.ballBtn.translateLocal(0, -50, 0);
 
     _this.backgroundBtn.translateLocal(0, -137, 0);
+
+    _this.events();
 
     game.cameraTargetPosition = new pc.Vec3(0, 1.8, -6);
     var animation = {
