@@ -71,6 +71,8 @@ var _Customize = _interopRequireDefault(require("./scenes/Customize"));
 
 var _GameLoop = _interopRequireDefault(require("./scenes/GameLoop"));
 
+var _CustomizeBall = _interopRequireDefault(require("./scenes/CustomizeBall"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
@@ -172,13 +174,8 @@ function () {
         });
       });
       this.app.on("game:customize:ball", function () {
-        _this2.setVkVar("ballStyle", 1); //todo implement that
-
-
-        return;
-
         _this2.scene.hide().then(function () {
-          _this2.app.fire("scene:set", CustomizeBackground);
+          _this2.app.fire("scene:set", _CustomizeBall.default);
         });
       });
       this.app.on("game:customize:background", function () {
@@ -356,6 +353,8 @@ function () {
       setIcon([226, 267, 60, 60], "ICON_CREDITS");
       setIcon([286, 267, 60, 60], "ICON_BALL");
       setIcon([346, 267, 60, 60], "ICON_BACKGROUND");
+      setIcon([406, 264, 34, 63], "ICON_ARROW_LEFT");
+      setIcon([440, 264, 34, 63], "ICON_ARROW_RIGHT");
       this.iconsSprite.endUpdate();
     }
   }, {
@@ -478,11 +477,11 @@ function () {
           VK.init(function () {
             return resolve(VK);
           }, function () {
-            alert("VK problem, disabled");
+            //alert("VK problem, disabled");
             return resolve("VK loading failed");
           }, '5.60');
         } catch (e) {
-          alert("VK problem, disabled");
+          //alert("VK problem, disabled");
           return resolve("VK loading failed");
         }
       });
@@ -573,7 +572,7 @@ function () {
 
 exports.default = Application;
 
-},{"./Scene":4,"./scenes/Customize":10,"./scenes/GameLoop":11,"./scenes/MainMenu":12}],3:[function(require,module,exports){
+},{"./Scene":4,"./scenes/Customize":10,"./scenes/CustomizeBall":11,"./scenes/GameLoop":12,"./scenes/MainMenu":13}],3:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1204,39 +1203,8 @@ function (_PanelElement) {
     _this.block.collision.off("collisionstart");
 
     _this.block.collision.on("collisionstart", function (result) {
-      _this.block.collision.off("collisionstart");
+      _this.block.collision.off("collisionstart"); //game.app.fire("level:changeColor", new pc.Color(1,1,1,1));
 
-      var animate = {
-        scale: 1,
-        translate: 0
-      };
-      anime({
-        targets: animate,
-        scale: [{
-          value: 0.9,
-          delay: 0,
-          easing: 'easeOutQuint'
-        }, {
-          value: 1,
-          delay: 0,
-          easing: 'easeOutQuint'
-        }],
-        translate: [{
-          value: -0.1,
-          delay: 0,
-          easing: 'linear'
-        }, {
-          value: 0,
-          delay: 0,
-          easing: 'linear'
-        }],
-        duration: 250,
-        delay: 0,
-        update: function update(anime) {
-          game.ball.visual.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
-          game.ball.visual.setLocalPosition(0, animate.translate, 0);
-        }
-      }); //game.app.fire("level:changeColor", new pc.Color(1,1,1,1));
     });
 
     return _this;
@@ -1463,10 +1431,50 @@ function (_Scene) {
       var _this2 = this;
 
       this.backBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:menu");
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, -animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:menu");
       });
       this.ballBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:customize:ball");
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:customize:ball");
       });
       this.backgroundBtn.element.on("click", function (event) {
         return _this2.app.fire("game:customize:background");
@@ -1479,6 +1487,10 @@ function (_Scene) {
 
       return new Promise(function (resolve) {
         _this3.backBtn.element.off();
+
+        _this3.ballBtn.element.off();
+
+        _this3.backgroundBtn.element.off();
 
         var animation = {
           opacity: 1
@@ -1532,6 +1544,300 @@ function (_Scene) {
 exports.default = Customize;
 
 },{"../Animation":1,"../Application":2,"./../Scene":4}],11:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Scene2 = _interopRequireDefault(require("./../Scene"));
+
+var _Animation = _interopRequireDefault(require("../Animation"));
+
+var _Application = _interopRequireDefault(require("../Application"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _construct(Parent, args, Class) { if (typeof Reflect !== "undefined" && Reflect.construct) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Parent.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } _setPrototypeOf(subClass.prototype, superClass && superClass.prototype); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.getPrototypeOf || function _getPrototypeOf(o) { return o.__proto__; }; return _getPrototypeOf(o); }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var CustomizeBall =
+/*#__PURE__*/
+function (_Scene) {
+  _createClass(CustomizeBall, [{
+    key: "createArrowButton",
+    value: function createArrowButton(icon) {
+      var button = new pc.Entity("arrow-button");
+      var anchor = icon === _Application.default.ICON_ARROW_LEFT ? [0, 0.5, 0, 0.5] : [1, 0.5, 1, 0.5];
+      var pivot = icon === _Application.default.ICON_ARROW_LEFT ? [0, 0.5] : [1, 0.5];
+      button.addComponent("element", {
+        type: pc.ELEMENTTYPE_IMAGE,
+        anchor: _construct(pc.Vec4, anchor),
+        pivot: _construct(pc.Vec2, pivot),
+        useInput: true,
+        width: 34,
+        height: 63,
+        opacity: 0,
+        sprite: game.iconsSprite,
+        spriteFrame: icon
+      });
+      this.screen.addChild(button);
+      button.setPosition(0, 0, 0);
+
+      if (icon === _Application.default.ICON_ARROW_LEFT) {
+        button.setLocalPosition(20, 0, 0);
+      }
+
+      if (icon === _Application.default.ICON_ARROW_RIGHT) {
+        button.setLocalPosition(-20, 0, 0);
+      }
+
+      return button;
+    }
+  }]);
+
+  function CustomizeBall(app, game) {
+    var _this;
+
+    _classCallCheck(this, CustomizeBall);
+
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(CustomizeBall).call(this, app, game));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "title", new pc.Entity("title"));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "backBtn", new pc.Entity("backBtn"));
+
+    _this.rotator = new pc.Entity("rotate-element");
+
+    _this.rotator.addComponent("element", {
+      type: pc.ELEMENTTYPE_IMAGE,
+      anchor: new pc.Vec4(0, 0, 1, 1),
+      pivot: new pc.Vec2(0, 0),
+      useInput: true,
+      opacity: 0,
+      color: new pc.Color(1, 0, 0, 0)
+    });
+
+    _this.screen.addChild(_this.rotator);
+
+    _this.title.addComponent("element", {
+      type: pc.ELEMENTTYPE_TEXT,
+      anchor: new pc.Vec4(0.0, 0.0, 0, 0),
+      pivot: new pc.Vec2(0.5, 0.5),
+      alignment: new pc.Vec2(0.5, 0.5),
+      useInput: true,
+      fontAsset: 1,
+      color: _construct(pc.Color, _toConsumableArray(game.config.customize.ui.color)),
+      fontSize: game.config.customize.ui.fontSize,
+      text: "BALL",
+      opacity: 0
+    });
+
+    _this.backBtn.addComponent("element", {
+      type: pc.ELEMENTTYPE_IMAGE,
+      anchor: new pc.Vec4(0, 1, 0, 1),
+      pivot: new pc.Vec2(0, 1),
+      useInput: true,
+      width: 48,
+      height: 48,
+      opacity: 0,
+      sprite: game.iconsSprite,
+      spriteFrame: _Application.default.ICON_BACK
+    });
+
+    _this.screen.addChild(_this.backBtn);
+
+    _this.backBtn.setPosition(-1, 1, 0);
+
+    _this.backBtn.translateLocal(20, -20, 0);
+
+    _this.screen.addChild(_this.title);
+
+    _this.title.setPosition(0, 0.6, 0);
+
+    _this.leftButton = _this.createArrowButton(_Application.default.ICON_ARROW_LEFT);
+    _this.rightButton = _this.createArrowButton(_Application.default.ICON_ARROW_RIGHT);
+
+    _this.events();
+
+    game.cameraTargetPosition = new pc.Vec3(0, 2.4, -6);
+    var animation = {
+      opacity: 0
+    };
+    anime({
+      targets: animation,
+      opacity: 1,
+      duration: 200,
+      easing: "linear",
+      update: function update(anime) {
+        _this.backBtn.element.opacity = animation.opacity;
+        _this.title.element.opacity = animation.opacity;
+        _this.leftButton.element.opacity = animation.opacity;
+        _this.rightButton.element.opacity = animation.opacity;
+      }
+    });
+    return _this;
+  }
+
+  _createClass(CustomizeBall, [{
+    key: "events",
+    value: function events() {
+      var _this2 = this;
+
+      this.backBtn.element.on("click", function (event) {
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, -animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:customize");
+      });
+      this.rotator.element.on("touchstart", function (event) {
+        var touch = event.event.touches[0];
+        _this2.lastTouchCoords = {
+          x: touch.pageX,
+          y: touch.pageY
+        };
+      });
+      this.rotator.element.on("touchmove", function (event) {
+        var touch = event.event.touches[0];
+        var coords = {
+          x: touch.pageX,
+          y: touch.pageY
+        };
+        var velocity = {
+          x: _this2.lastTouchCoords.x - coords.x,
+          y: _this2.lastTouchCoords.y - coords.y
+        };
+        _this2.lastTouchCoords = coords;
+        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(velocity.y * 50, -velocity.x * 50, 0);
+
+        _this2.resetBallVelocity();
+      });
+      this.rotator.element.on("touchend", function (event) {
+        _this2.resetBallVelocity();
+      });
+    }
+  }, {
+    key: "resetBallVelocity",
+    value: function resetBallVelocity() {
+      var velocity = game.ball.visual.rigidbody.angularVelocity;
+      var animation = {
+        x: velocity.x,
+        y: velocity.y
+      };
+      if (this.resetVelocity) this.resetVelocity.pause();
+      this.resetVelocity = anime({
+        targets: animation,
+        x: 0,
+        y: 0,
+        delay: 100,
+        duration: 500,
+        easing: "linear",
+        update: function update(anime) {
+          game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.x, animation.y, 0);
+        }
+      });
+    }
+  }, {
+    key: "hide",
+    value: function hide() {
+      var _this3 = this;
+
+      return new Promise(function (resolve) {
+        _this3.backBtn.element.off();
+
+        _this3.leftButton.element.off();
+
+        _this3.rightButton.element.off();
+
+        _this3.rotator.element.off();
+
+        var animation = {
+          opacity: 1
+        };
+        anime({
+          targets: animation,
+          opacity: 0,
+          duration: 200,
+          easing: "linear",
+          update: function update(anime) {
+            _this3.backBtn.element.opacity = animation.opacity;
+            _this3.title.element.opacity = animation.opacity;
+            _this3.leftButton.element.opacity = animation.opacity;
+            _this3.rightButton.element.opacity = animation.opacity;
+          },
+          complete: function complete(anime) {
+            _this3.root.destroy();
+
+            _this3.backBtn.destroy();
+
+            _this3.title.destroy();
+
+            _this3.leftButton.destroy();
+
+            _this3.leftButton.destroy();
+
+            _this3.rotator.destroy();
+
+            return resolve();
+          }
+        });
+      });
+    }
+  }]);
+
+  _inherits(CustomizeBall, _Scene);
+
+  return CustomizeBall;
+}(_Scene2.default);
+
+exports.default = CustomizeBall;
+
+},{"../Animation":1,"../Application":2,"./../Scene":4}],12:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1646,22 +1952,33 @@ function (_Scene) {
       element.opacity = 0;
     });
 
+    _this.resetBallRotation();
+
     var animation = {
-      opacity: 0,
-      ballAngularVelocity: 0
+      opacity: 0
     };
     anime({
       targets: animation,
       opacity: 1,
-      ballAngularVelocity: _this.ballRotationSpeed,
       duration: 300,
       easing: "linear",
       update: function update(anime) {
         _this.elements.forEach(function (element) {
           element.opacity = animation.opacity;
         });
-
-        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.ballAngularVelocity, 0, 0);
+      }
+    });
+    var ballRotationAnim = {
+      ballAngularVelocity: 0
+    };
+    anime({
+      targets: ballRotationAnim,
+      ballAngularVelocity: _this.ballRotationSpeed,
+      duration: 300,
+      delay: 250,
+      easing: "linear",
+      update: function update(anime) {
+        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(ballRotationAnim.ballAngularVelocity, 0, 0);
       }
     });
     game.app.fire("level:resetBallSpeed");
@@ -1917,6 +2234,31 @@ function (_Scene) {
         }
       });
       material.diffuse = color;
+    }
+  }, {
+    key: "resetBallRotation",
+    value: function resetBallRotation() {
+      var currentRotation = game.ball.visual.getRotation().clone();
+      var currentGraphRotation = game.ball.visual.model.model.graph.getLocalRotation().clone();
+      var targetRotation = new pc.Quat().mul2(currentRotation, currentGraphRotation);
+      game.ball.visual.model.model.graph.setLocalRotation(targetRotation);
+      game.ball.visual.setRotation(new pc.Quat(0, 0, 0, 1));
+      return;
+      /*
+              let currentRotation = game.ball.visual.getRotation();
+              let targetRotation = new pc.Quat(0,0,0,1);
+      
+              let animation = {alpha: 0};
+              anime({
+                  targets:animation,
+                  alpha: 1,
+                  duration: 700,
+                  easing: "linear",
+                  update: anime => {
+                      let alphaRotation = new pc.Quat().slerp(currentRotation, targetRotation, animation.alpha);
+                      game.ball.visual.setRotation(alphaRotation);
+                  }
+              });*/
     }
   }, {
     key: "events",
@@ -2248,7 +2590,7 @@ function (_Scene) {
 
 exports.default = GameLoop;
 
-},{"../Application":2,"../levelElements/ChangeElement":5,"../levelElements/RingElement":7,"../levelElements/SmallPanelElement":9,"./../Scene":4,"./../levelElements/PanelElement":6,"./../levelElements/SafeZoneElement":8,"./PauseMenu":13}],12:[function(require,module,exports){
+},{"../Application":2,"../levelElements/ChangeElement":5,"../levelElements/RingElement":7,"../levelElements/SmallPanelElement":9,"./../Scene":4,"./../levelElements/PanelElement":6,"./../levelElements/SafeZoneElement":8,"./PauseMenu":14}],13:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2345,10 +2687,30 @@ function (_Scene) {
       var _this2 = this;
 
       this.startGameBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:start");
+        _this2.app.fire("game:start");
       });
       this.customizeBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:customize");
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:customize");
       });
     }
   }, {
@@ -2406,7 +2768,7 @@ function (_Scene) {
 
 exports.default = MainMenu;
 
-},{"../Animation":1,"../Application":2,"./../Scene":4}],13:[function(require,module,exports){
+},{"../Animation":1,"../Application":2,"./../Scene":4}],14:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2671,7 +3033,7 @@ function (_Scene) {
 
 exports.default = PauseMenu;
 
-},{"../Application":2,"./../Scene":4}],14:[function(require,module,exports){
+},{"../Application":2,"./../Scene":4}],15:[function(require,module,exports){
 "use strict";
 
 var _Application = _interopRequireDefault(require("./js/Application"));
@@ -2800,4 +3162,4 @@ app.configure("config/playcanvas.json", function (err) {
   });
 });
 
-},{"./js/Application":2}]},{},[14]);
+},{"./js/Application":2}]},{},[15]);
