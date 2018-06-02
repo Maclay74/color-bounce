@@ -466,13 +466,19 @@ function () {
 
       return new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
-        VK.init(function () {
-          alert("VK ok");
-          return resolve(VK);
-        }, function () {
-          alert("VK problem");
-          return reject("VK loading failed");
-        }, '5.60');
+
+        try {
+          VK.init(function () {
+            alert("VK ok");
+            return resolve(VK);
+          }, function () {
+            alert("VK problem");
+            return reject("VK loading failed");
+          }, '5.60');
+        } catch (e) {
+          alert("VK problem, disabled");
+          return resolve("VK loading failed");
+        }
       });
     }
   }, {
@@ -481,7 +487,8 @@ function () {
       var _this9 = this;
 
       return new Promise(function (resolve) {
-        var assets = [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"]];
+        var assets = [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"], ["assets/models/ball/style-1/ball-model.json", "model"]];
+        return resolve(assets);
         var ball = new Promise(function (resolve) {
           _this9.getVkVar("ballStyle", 1).then(function (style) {
             assets.push(["assets/models/ball/style-" + style + "/ball-model.json", "model"]);
