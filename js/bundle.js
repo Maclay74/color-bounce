@@ -467,8 +467,10 @@ function () {
       return new Promise(function (resolve, reject) {
         if (!VK) reject("VK isn't available");
         VK.init(function () {
+          alert("VK ok");
           return resolve(VK);
         }, function () {
+          alert("VK problem");
           return reject("VK loading failed");
         }, '5.60');
       });
