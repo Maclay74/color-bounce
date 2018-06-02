@@ -504,7 +504,7 @@ function () {
       var _this10 = this;
 
       return new Promise(function (resolve) {
-        if (!VK._v) return resolve(defaultValue);
+        if (!VK._inited) return resolve(defaultValue);
         VK.api("storage.get", {
           key: key
         }).then(function (response) {
