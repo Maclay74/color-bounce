@@ -177,7 +177,19 @@ function () {
         });
       });
       this.app.on("game:customize:ball", function () {
-        //todo implement that
+        _this2.setVkVar("ballStyle", 1); //todo implement that
+
+
+        return;
+
+        _this2.scene.hide().then(function () {
+          _this2.app.fire("scene:set", CustomizeBackground);
+        });
+      });
+      this.app.on("game:customize:background", function () {
+        _this2.setVkVar("ballStyle", 0); //todo implement that
+
+
         return;
 
         _this2.scene.hide().then(function () {
