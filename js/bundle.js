@@ -172,11 +172,6 @@ function () {
         });
       });
       this.app.on("game:customize:ball", function () {
-        _this2.scene.hide().then(function () {
-          _this2.app.fire("scene:set", CustomizeBall);
-        });
-      });
-      this.app.on("game:customize:ball", function () {
         _this2.setVkVar("ballStyle", 1); //todo implement that
 
 
