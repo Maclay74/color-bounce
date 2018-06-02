@@ -5,23 +5,22 @@ BlurPostEffect.prototype.initialize = function() {
 
     let device = this.app.graphicsDevice;
     let ps = this.app.assets.find("blurPS.glsl","shader").resource;
-
     ps = "precision " + device.precision + " float;\n" + ps;
-
     this.shader = pc.shaderChunks.createShaderFromCode(device, pc.shaderChunks.fullscreenQuadVS, ps, "blur");
 
 
-
     let psQuad = "precision " + device.precision + " float;\n\n" + this.app.assets.find("blurExcludePS.glsl","shader").resource;
-
     this.drawQuadShader = pc.shaderChunks.createShaderFromCode(device, pc.shaderChunks.fullscreenQuadVS, psQuad, "drawQuad");
 
     this.power = 0;
 
     this.resolution = device.scope.resolve("resolution");
     this.direction = device.scope.resolve("direction");
-
     this.source = device.scope.resolve("uExcludeBuffer");
+
+    let resolution = [
+        414, 736
+    ]
 
     this.post = new pc.PostEffectPass(this.app, {
         shader: this.shader,
@@ -29,7 +28,7 @@ BlurPostEffect.prototype.initialize = function() {
         unmodifiedUvs: true,
 
         setup: () => {
-           this.resolution.setValue([device.width, device.height]);
+           this.resolution.setValue(resolution);
            this.direction.setValue([this.power, 0]);
         }
     });
@@ -42,7 +41,7 @@ BlurPostEffect.prototype.initialize = function() {
         unmodifiedUvs: false,
 
         setup: () => {
-            this.resolution.setValue([device.width, device.height]);
+            this.resolution.setValue(resolution);
             this.direction.setValue([0, this.power]);
         }
     });
