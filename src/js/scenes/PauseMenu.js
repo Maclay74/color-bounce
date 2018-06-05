@@ -8,6 +8,17 @@ export default class PauseMenu extends Scene {
     background = new pc.Entity("pause-background");
     title = new pc.Entity("title");
 
+    blurPower  =  2;
+
+    createBlockButton(icon, text, background) {
+        let button = super.createBlockButton(icon, text, background);
+
+        button.element.layers = [6];
+        button.icon.element.layers = [6];
+        button.text.element.layers = [6];
+        return button;
+    }
+
     constructor(app, game) {
         super(app, game);
 
@@ -34,7 +45,8 @@ export default class PauseMenu extends Scene {
             color: new pc.Color(...game.config.gameLoop.ui.color),
             fontSize: 48,
             opacity: 0,
-            text: "PAUSE"
+            text: "PAUSE",
+            layers: [6]
         });
 
         // Score value
@@ -47,7 +59,8 @@ export default class PauseMenu extends Scene {
             color: new pc.Color(...game.config.gameLoop.ui.color),
             fontSize: game.config.gameLoop.ui.fontSize,
             opacity: 0,
-            text: 0
+            text: 0,
+            layers: [6]
         });
 
         // Score
@@ -60,6 +73,7 @@ export default class PauseMenu extends Scene {
             fontSize: 40,
             text: game.config.gameLoop.ui.scoreText,
             opacity: 0,
+            layers: [6]
         });
 
         this.screen.addChild(this.scoreLabel);
@@ -81,7 +95,7 @@ export default class PauseMenu extends Scene {
         anime({
             targets: animation,
             opacity: 1,
-            blur: 3,
+            blur: this.blurPower,
             easing: "linear",
             duration: 300,
             update: anime => {
@@ -98,7 +112,9 @@ export default class PauseMenu extends Scene {
 
                 this.title.element.opacity = animation.opacity;
 
-                this.background.element.opacity = animation.opacity / 1.3;
+                game.app.root.script.blur.power = animation.blur;
+
+                this.background.element.opacity = animation.opacity / 3;
 
             }
         })
@@ -120,7 +136,7 @@ export default class PauseMenu extends Scene {
             this.resumeBtn.element.off();
             this.mainMenuBtn.element.off();
 
-            let animation = {opacity: 1}
+            let animation = {opacity: 1, blur: this.blurPower}
 
             anime({
                 targets: animation,
@@ -137,12 +153,14 @@ export default class PauseMenu extends Scene {
                     this.mainMenuBtn.text.element.opacity = animation.opacity;
                     this.mainMenuBtn.icon.element.opacity = animation.opacity;
 
-                    this.background.element.opacity = animation.opacity / 1.3;
+                    this.background.element.opacity = animation.opacity / 3;
 
                     this.title.element.opacity = animation.opacity;
 
                     this.scoreLabel.element.opacity = animation.opacity;
                     this.scoreValueLabel.element.opacity = animation.opacity;
+
+                    game.app.root.script.blur.power = animation.blur;
                 },
                 complete: anime => {
                     this.root.destroy();

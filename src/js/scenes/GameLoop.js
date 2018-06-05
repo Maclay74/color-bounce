@@ -29,6 +29,7 @@ export default class GameLoop extends Scene {
 
     elementOffset = 4.16;
     ballSpeed = 7;
+    ballRotationSpeed = 500;
 
     initElementsCount = 10;
 
@@ -61,16 +62,33 @@ export default class GameLoop extends Scene {
             element.opacity = 0;
         });
 
+        this.resetBallRotation();
+
+        let animation = {opacity: 0};
+
         anime({
-            targets: {time: 0},
-            time: 1,
+            targets: animation,
+            opacity: 1,
             duration: 300,
             easing: "linear",
             update: anime =>  {
-                let value = anime.animations[0].currentValue;
+
                 this.elements.forEach(element => {
-                    element.opacity = value;
+                    element.opacity = animation.opacity;
                 });
+            }
+        });
+
+        let ballRotationAnim = { ballAngularVelocity: 0};
+
+        anime({
+            targets: ballRotationAnim,
+            ballAngularVelocity: this.ballRotationSpeed,
+            duration: 300,
+            delay: 250,
+            easing: "linear",
+            update: anime =>  {
+                game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(ballRotationAnim.ballAngularVelocity, 0, 0)
             }
         });
 
@@ -304,7 +322,7 @@ export default class GameLoop extends Scene {
             duration: 250,
             delay: 750,
             update: anime => {
-                game.ball.visual.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
+                game.ball.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
                 game.ball.visual.setLocalPosition(0,animate.translate,0);
             }
         })
@@ -345,6 +363,16 @@ export default class GameLoop extends Scene {
         material.diffuse = color;
     }
 
+    resetBallRotation() {
+
+        let currentRotation = game.ball.visual.getRotation().clone();
+        let currentGraphRotation = game.ball.visual.model.model.graph.getLocalRotation().clone();
+        let targetRotation = new pc.Quat().mul2(currentRotation, currentGraphRotation);
+
+        game.ball.visual.model.model.graph.setLocalRotation(targetRotation);
+        game.ball.visual.setRotation(new pc.Quat(0,0,0,1));
+    }
+
     events() {
         // When ball contacts something with special color
         game.app.on("level:checkColor", color => {
@@ -377,6 +405,7 @@ export default class GameLoop extends Scene {
 
         game.app.on("level:pause", () => {
             game.ball.rigidbody.disableSimulation();
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0)
             if (this.ballJumpAnimation) this.ballJumpAnimation.pause();
             let pauseScene = new PauseMenu(game.app, game);
             pauseScene.score = this.score;
@@ -398,6 +427,7 @@ export default class GameLoop extends Scene {
         game.app.on("level:unpause", (scene) => {
             scene.hide().then(() => {
                 game.ball.rigidbody.enableSimulation();
+                game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(this.ballRotationSpeed, 0, 0)
                 if (this.ballJumpAnimation) this.ballJumpAnimation.play();
             });
 
@@ -486,7 +516,6 @@ export default class GameLoop extends Scene {
             this.scoreValueLabel.element.text = this.score;
             this.difficulty();
         }
-
     }
 
     static blendColors(...colors) {
@@ -573,12 +602,12 @@ export default class GameLoop extends Scene {
             this.eventsOff();
 
             let currentPosition = game.ball.getPosition();
-            game.ball.visual.setLocalScale(1,1,1);
+            game.ball.setLocalScale(1,1,1);
             if (this.ballJumpAnimation) this.ballJumpAnimation.pause();
 
             game.cameraTargetPosition = new pc.Vec3(0, 6, currentPosition.z - 6);
 
-            let animation = {opacity: 1, ballPosition: currentPosition.y };
+            let animation = {opacity: 1, ballPosition: currentPosition.y, ballRotation: this.ballRotationSpeed };
 
             let moveBallPromise = new Promise(resolveBall =>  {
                 anime({
@@ -587,13 +616,28 @@ export default class GameLoop extends Scene {
                     duration: 1000,
                     easing: "easeOutBack",
                     update: anime =>  {
-                        game.ball.setPosition(0, animation.ballPosition, currentPosition.z)
+                        game.ball.setPosition(0, animation.ballPosition, currentPosition.z);
                     },
                     complete: anime => {
                         game.ball.setPosition(0, 0, 0);
                         game.camera.setPosition(0, 1, -6);
                         game.cameraTargetPosition = new pc.Vec3(0, 1, -6);
                         game.ballTargetPosition = new pc.Vec3(0,0,0);
+                        resolveBall();
+                    }
+                });
+            });
+
+            let rotateBallPromise = new Promise(resolveBall =>  {
+                anime({
+                    targets: animation,
+                    duration: 1000,
+                    ballRotation: 0,
+                    easing: "linear",
+                    update: anime =>  {
+                        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.ballRotation, 0, 0)
+                    },
+                    complete: anime => {
                         resolveBall();
                     }
                 });
@@ -643,7 +687,7 @@ export default class GameLoop extends Scene {
                 });
             })
 
-            Promise.all([moveBallPromise, hideUI]).then(() => {
+            Promise.all([moveBallPromise, rotateBallPromise, hideUI]).then(() => {
                 this.root.destroy();
                 resolve();
             });

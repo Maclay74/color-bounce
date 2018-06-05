@@ -32,9 +32,12 @@
     "babelify": "^9.0.0",
     "bluebird": "^3.5.1",
     "browserify": "^16.2.2",
+    "gh-pages": "^1.2.0",
     "gulp-babel": "^8.0.0-beta.2",
+    "gulp-gh-pages": "^0.5.4",
     "gulp-jimp-resize": "^2.0.2",
     "gulp-util": "^3.0.8",
+    "vinyl-ftp": "^0.6.1",
     "vinyl-source-stream": "^2.0.0"
   }
 }

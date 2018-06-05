@@ -9,6 +9,7 @@ var browserify = require('browserify');
 var babelify = require('babelify');
 var source = require('vinyl-source-stream');
 var gutil = require('gulp-util');
+var ghPages = require('gulp-gh-pages');
 
 gulp.task("scripts-libs", function() {
 	return gulp.src([
@@ -85,3 +86,11 @@ gulp.task("watch", ['browser-sync'], function() {
     ],  ['scripts', 'config'], browserSync.reload);
 });
 
+gulp.task( 'deploy', function () {
+
+    return gulp.src('dist/**/*')
+        .pipe(ghPages({
+            remoteUrl: "https://Mikecoon:DarkMedveD93@github.com/Mikecoon/color-bounce.git",
+            message: "Update pages"
+        }));
+} );

@@ -71,7 +71,17 @@ var _Customize = _interopRequireDefault(require("./scenes/Customize"));
 
 var _GameLoop = _interopRequireDefault(require("./scenes/GameLoop"));
 
+var _CustomizeBall = _interopRequireDefault(require("./scenes/CustomizeBall"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
+
+function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance"); }
+
+function _iterableToArrayLimit(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
+
+function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
 
 function _construct(Parent, args, Class) { if (typeof Reflect !== "undefined" && Reflect.construct) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Parent.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
 
@@ -101,17 +111,17 @@ function () {
 
     _defineProperty(this, "configFile", "config/game.json");
 
-    _defineProperty(this, "preload", [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"]]);
-
     _defineProperty(this, "camera", new pc.Entity('camera'));
 
     _defineProperty(this, "cameraTargetPosition", new pc.Vec3());
 
-    _defineProperty(this, "cameraTargetRotation", new pc.Quat(0, 1, 0, 0));
+    _defineProperty(this, "cameraTargetRotation", new pc.Quat(0, 1, 0, 1));
 
     _defineProperty(this, "cameraMovingSpeed", 5);
 
     _defineProperty(this, "cameraRotationSpeed", 5);
+
+    _defineProperty(this, "ballStyleId", 0);
 
     _defineProperty(this, "light", new pc.Entity('light'));
 
@@ -124,7 +134,7 @@ function () {
 
     this.events(); // Get config and apply some settings
 
-    this.loadConfig().then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
+    this.loadConfig().then(this.initVk.bind(this)).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
       app.fire("game:menu");
     });
   }
@@ -165,6 +175,21 @@ function () {
           _this2.app.fire("scene:set", _Customize.default);
         });
       });
+      this.app.on("game:customize:ball", function () {
+        _this2.scene.hide().then(function () {
+          _this2.app.fire("scene:set", _CustomizeBall.default);
+        });
+      });
+      this.app.on("game:customize:background", function () {
+        _this2.setVkVar("ballStyle", 0); //todo implement that
+
+
+        return;
+
+        _this2.scene.hide().then(function () {
+          _this2.app.fire("scene:set", CustomizeBackground);
+        });
+      });
       this.app.on("update", function (dt) {
         _this2.update(dt);
       });
@@ -187,48 +212,15 @@ function () {
       var _this3 = this;
 
       return new Promise(function (resolve) {
-        var requests = _this3.preload.map(function (asset) {
-          return Application.loadAsset.apply(Application, _toConsumableArray(asset));
+        _this3.getAssets().then(function (assets) {
+          var requests = assets.map(function (asset) {
+            return Application.loadAsset.apply(Application, _toConsumableArray(asset));
+          });
+          Promise.all(requests).then(function (assets) {
+            return resolve(assets);
+          });
         });
-
-        Promise.all(requests).then(function (assets) {
-          return resolve(assets);
-        });
       });
-    }
-  }, {
-    key: "initBall",
-    value: function initBall() {
-      this.ball.visual = new pc.Entity("visual");
-      this.ball.contact = null;
-      this.ball.visual.addComponent("model", {
-        type: "sphere",
-        castShadows: true,
-        receiveShadows: false
-      });
-      this.ball.addComponent("collision", {
-        radius: game.config.gameLoop.ball.radius,
-        type: "sphere"
-      });
-      this.ball.addComponent("rigidbody", {
-        type: pc.RIGIDBODY_TYPE_DYNAMIC,
-        mass: game.config.gameLoop.ball.mass,
-        linearDamping: 0,
-        angularDamping: 0,
-        linearFactor: new pc.Vec3(0, 1, 1),
-        angularFactor: pc.Vec3.ZERO,
-        friction: 0,
-        restitution: 0
-      });
-      var material = new pc.StandardMaterial();
-      material.diffuse = new pc.Color().fromString("#00ABFF");
-      material.ambient = new pc.Color().fromString("#ffffff");
-      material.ambientTint = true;
-      material.emissiveIntensity = 5.34;
-      material.update();
-      this.ball.visual.model.model.meshInstances[0].material = material;
-      this.ball.addChild(this.ball.visual);
-      this.app.root.addChild(this.ball);
     }
   }, {
     key: "initBackground",
@@ -297,17 +289,32 @@ function () {
       setIcon([79, 180, 74, 74], "ICON_BLUE_INNER");
       setIcon([79, 94, 74, 74], "ICON_RED_INNER");
       setIcon([79, 8, 74, 74], "ICON_YELLOW_INNER");
-      setIcon([246, 177, 242, 80], "ICON_BLUE_BUTTON");
-      setIcon([246, 92, 242, 80], "ICON_RED_BUTTON");
-      setIcon([246, 5, 242, 80], "ICON_YELLOW_BUTTON");
+      setIcon([246, 177, 241, 80], "ICON_BLUE_BUTTON");
+      setIcon([246, 92, 241, 80], "ICON_RED_BUTTON");
+      setIcon([246, 5, 241, 80], "ICON_YELLOW_BUTTON");
       setIcon([106, 267, 60, 60], "ICON_PLAY");
       setIcon([166, 267, 60, 60], "ICON_CUSTOMIZE");
       setIcon([226, 267, 60, 60], "ICON_CREDITS");
+      setIcon([286, 267, 60, 60], "ICON_BALL");
+      setIcon([346, 267, 60, 60], "ICON_BACKGROUND");
+      setIcon([406, 264, 34, 63], "ICON_ARROW_LEFT");
+      setIcon([440, 264, 34, 63], "ICON_ARROW_RIGHT");
+      setIcon([0, 327, 167, 60], "ICON_DEFAULT_BUTTON_BACKGROUND");
+      setIcon([168, 327, 23, 17], "ICON_DONE");
+      setIcon([168, 344, 23, 20], "ICON_COIN");
       this.iconsSprite.endUpdate();
     }
   }, {
     key: "initBlur",
     value: function initBlur() {
+      var _this6 = this;
+
+      this.blurExtrudeLayer = new pc.Layer("blur-extrude");
+      this.blurExtrudeLayer.name = "blur-extrude";
+      this.blurExtrudeLayer.addCamera(this.camera.camera);
+      this.blurExtrudeLayer.addLight(this.light);
+      game.app.scene.layers.insertOpaque(this.blurExtrudeLayer, 11);
+      game.app.scene.layers.insertTransparent(this.blurExtrudeLayer, 11);
       var device = this.app.graphicsDevice;
       var texture = new pc.Texture(device, {
         width: device.width,
@@ -315,95 +322,221 @@ function () {
         format: pc.PIXELFORMAT_R8_G8_B8_A8,
         mipmaps: false
       });
-      var renderTarget = new pc.RenderTarget({
+      this.blurExtrudeLayer.renderTarget = new pc.RenderTarget({
         colorBuffer: texture,
         depth: true
       });
-      var world = game.app.scene.layers.getLayerByName("World");
-      world.renderTarget = renderTarget;
-      var ps = this.app.assets.find("blurPS.glsl", "shader").resource;
-      var shader = pc.shaderChunks.createShaderFromCode(device, pc.shaderChunks.fullscreenQuadVS, ps, "blur");
-      var ui = game.app.scene.layers.getLayerById(pc.LAYERID_UI);
 
-      ui.onPreRender = function (cameraPass) {
-        ui.cameras[cameraPass].clearColorBuffer = false;
-      };
-
-      ui.onPostRender = function (cameraPass) {
-        device.copyRenderTarget(renderTarget, null, true, false);
-        ui.cameras[cameraPass].clearColorBuffer = true;
+      this.blurExtrudeLayer.onPreRender = function (cameraIndex) {
+        _this6.blurExtrudeLayer.cameras[cameraIndex].clearColor = new pc.Color(0.5, 0.5, 0.5, 0);
       };
     }
   }, {
     key: "hierarchy",
     value: function hierarchy() {
-      var _this6 = this;
+      var _this7 = this;
 
       return new Promise(function (resolve) {
-        _this6.screen.addComponent("screen", {
+        _this7.screen.addComponent("screen", {
           referenceResolution: pc.Vec2(1280, 720),
           scaleMode: pc.SCALEMODE_BLEND,
           scaleBlend: 0.5,
           screenSpace: true
         });
 
-        _this6.app.root.addChild(_this6.screen); //this.app.scene.gammaCorrection = pc.GAMMA_SRGB;
+        _this7.app.root.addChild(_this7.screen);
 
+        _this7.app.scene.fog = pc.FOG_LINEAR;
+        _this7.app.scene.fogStart = 20;
+        _this7.app.scene.fogEnd = 50;
+        _this7.app.scene.exposure = 0.8;
+        _this7.app.scene.fogColor = new pc.Color().fromString("#312E57").darken(-7);
+        _this7.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
 
-        _this6.app.scene.fog = pc.FOG_LINEAR;
-        _this6.app.scene.fogStart = 20;
-        _this6.app.scene.fogEnd = 50;
-        _this6.app.scene.exposure = 0.8;
-        _this6.app.scene.fogColor = new pc.Color().fromString("#312E57").darken(-7);
-        _this6.app.scene.ambientLight = new pc.Color().fromString("#ffffff");
-
-        _this6.camera.addComponent('camera', {
-          clearColor: _construct(pc.Color, _toConsumableArray(_this6.config.camera.clearColor))
+        _this7.camera.addComponent('camera', {
+          clearColor: new pc.Color(1, 1, 1, 1)
         });
 
-        _this6.light.addComponent('light', {
-          castShadows: false,
+        _this7.light.addComponent('light', {
+          castShadows: true,
           type: pc.LIGHTTYPE_DIRECTIONAL,
           shadowUpdateMode: pc.SHADOWUPDATE_REALTIME,
-          shadowResolution: 256,
+          shadowResolution: 512,
           intensity: 0.65,
           shadowDistance: 16,
-          shadowBias: 0.04,
-          normalOffsetBias: 0.04,
-          shadowType: pc.SHADOW_PCF5 //vsmBlurMode: pc.BLUR_GAUSSIAN,
-          //vsmBlurSize: 2
-
+          shadowType: pc.SHADOW_VSM16,
+          vsmBlurMode: pc.BLUR_GAUSSIAN,
+          vsmBlurSize: 15
         });
 
-        _this6.light.setEulerAngles(152, -75, -121);
+        _this7.light.setEulerAngles(152, -75, -121);
 
-        _this6.app.root.addChild(_this6.camera);
+        _this7.app.root.addChild(_this7.camera);
 
-        _this6.camera.addChild(_this6.light);
+        _this7.camera.addChild(_this7.light);
 
-        _this6.camera.setPosition(0, 0, -0.6);
+        _this7.camera.setPosition(0, 0, -0.6);
 
-        _this6.camera.setEulerAngles(0, 180, 0);
+        _this7.camera.setEulerAngles(0, 180, 0);
 
-        _this6.initBall();
+        _this7.getVkVar("ballStyle", 0).then(function (styleId) {
+          _this7.ballStyleId = styleId;
+          _this7.ball = Application.createBall(_this7.ballStyleId);
 
-        _this6.initBackground(); //this.initBlur();
-
-
-        Application.getAsset("blur.js", "script").then(function (asset) {//this.app.root.addComponent("script");
-          //this.app.root.script.create("blur");
+          _this7.app.root.addChild(_this7.ball);
         });
-        Application.getAsset("fps.js", "script").then(function (asset) {//this.app.root.addComponent("script");
-          //this.app.root.script.create("fps");
+
+        _this7.initBackground();
+
+        _this7.initBlur();
+
+        _this7.app.root.addComponent("script");
+
+        Application.getAsset("blur.js", "script").then(function (asset) {
+          _this7.app.root.script.create("blur");
+        });
+        Application.getAsset("fps.js", "script").then(function (asset) {//this.app.root.script.create("fps");
         });
         Application.getAsset("icons.png", "texture").then(function (asset) {
-          _this6.initIcons(asset);
+          _this7.initIcons(asset);
 
           resolve();
         });
       });
     }
+  }, {
+    key: "getUrlParams",
+    value: function getUrlParams() {
+      return _toConsumableArray(new URLSearchParams(document.location.search).entries()).reduce(function (q, _ref) {
+        var _ref2 = _slicedToArray(_ref, 2),
+            k = _ref2[0],
+            v = _ref2[1];
+
+        return Object.assign(q, _defineProperty({}, k, v));
+      }, {});
+    }
+  }, {
+    key: "initVk",
+    value: function initVk() {
+      if (!VK) {
+        throw new Error("VK isn't available");
+      }
+
+      return new Promise(function (resolve, reject) {
+        if (!VK) reject("VK isn't available");
+
+        try {
+          VK.init(function () {
+            return resolve(VK);
+          }, function () {
+            //alert("VK problem, disabled");
+            return resolve("VK loading failed");
+          }, '5.60');
+        } catch (e) {
+          //alert("VK problem, disabled");
+          return resolve("VK loading failed");
+        }
+      });
+    }
+  }, {
+    key: "getAssets",
+    value: function getAssets() {
+      return new Promise(function (resolve) {
+        var assets = [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"]];
+        Promise.all([]).then(function () {
+          resolve(assets);
+        });
+      });
+    }
+  }, {
+    key: "getVkVar",
+    value: function getVkVar(key, defaultValue) {
+      var _this8 = this;
+
+      return new Promise(function (resolve) {
+        if (!VK._bridge) return resolve(defaultValue);
+        VK.api("storage.get", {
+          key: key
+        }).then(function (response) {
+          if (response.response === "") {
+            _this8.setVkVar(key, defaultValue);
+
+            return resolve(defaultValue);
+          }
+
+          return resolve(response.response);
+        });
+      });
+    }
+  }, {
+    key: "setVkVar",
+    value: function setVkVar(key, value) {
+      return new Promise(function (resolve) {
+        VK.api("storage.set", {
+          key: key,
+          value: value
+        }).then(function (response) {
+          return resolve(response.response);
+        });
+      });
+    }
   }], [{
+    key: "createBall",
+    value: function createBall(ballId) {
+      var assetUrl = "assets/models/ball/".concat(ballId, "/ball-model.json");
+      var ball = new pc.Entity("ball");
+      ball.visual = new pc.Entity("ball-visual");
+      ball.contact = null;
+      ball.visual.addComponent("model", {
+        type: "asset",
+        castShadows: true,
+        receiveShadows: false
+      });
+      ball.visual.addComponent("collision", {
+        radius: 0,
+        type: "sphere"
+      });
+      ball.visual.addComponent("rigidbody", {
+        type: pc.RIGIDBODY_TYPE_KINEMATIC,
+        linearDamping: 0,
+        angularDamping: 0,
+        linearFactor: new pc.Vec3(0, 0, 0),
+        angularFactor: pc.Vec3.ZERO,
+        friction: 0,
+        restitution: 0
+      });
+      ball.visual.removeComponent("collision");
+      Application.loadAsset(assetUrl, "model").then(function (asset) {
+        ball.visual.removeComponent("model");
+        ball.visual.addComponent("model", {
+          asset: asset
+        });
+        ball.visual.model.model.meshInstances[0].material = material;
+      });
+      ball.addComponent("collision", {
+        radius: game.config.gameLoop.ball.radius,
+        type: "sphere"
+      });
+      ball.addComponent("rigidbody", {
+        type: pc.RIGIDBODY_TYPE_DYNAMIC,
+        mass: 0,
+        linearDamping: 0,
+        angularDamping: 0,
+        linearFactor: new pc.Vec3(0, 1, 1),
+        angularFactor: pc.Vec3.ZERO,
+        friction: 0,
+        restitution: 0
+      });
+      var material = new pc.StandardMaterial();
+      material.diffuse = new pc.Color().fromString("#00ABFF");
+      material.ambient = new pc.Color().fromString("#ffffff");
+      material.ambientTint = true;
+      material.emissiveIntensity = 5.34;
+      material.update();
+      ball.addChild(ball.visual);
+      return ball;
+    }
+  }, {
     key: "getAsset",
     value: function getAsset(name, type) {
       return new Promise(function (resolve, reject) {
@@ -420,6 +553,8 @@ function () {
     key: "loadAsset",
     value: function loadAsset(url, type) {
       return new Promise(function (resolve, reject) {
+        var asset = pc.app.assets.getByUrl(url);
+        if (asset) resolve(asset);
         pc.app.assets.loadFromUrl(url, type, function (err, asset) {
           if (err) return reject(err);
           return resolve(asset);
@@ -439,7 +574,7 @@ function () {
 
 exports.default = Application;
 
-},{"./Scene":4,"./scenes/Customize":10,"./scenes/GameLoop":11,"./scenes/MainMenu":12}],3:[function(require,module,exports){
+},{"./Scene":4,"./scenes/Customize":10,"./scenes/CustomizeBall":11,"./scenes/GameLoop":12,"./scenes/MainMenu":13}],3:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1070,39 +1205,8 @@ function (_PanelElement) {
     _this.block.collision.off("collisionstart");
 
     _this.block.collision.on("collisionstart", function (result) {
-      _this.block.collision.off("collisionstart");
+      _this.block.collision.off("collisionstart"); //game.app.fire("level:changeColor", new pc.Color(1,1,1,1));
 
-      var animate = {
-        scale: 1,
-        translate: 0
-      };
-      anime({
-        targets: animate,
-        scale: [{
-          value: 0.9,
-          delay: 0,
-          easing: 'easeOutQuint'
-        }, {
-          value: 1,
-          delay: 0,
-          easing: 'easeOutQuint'
-        }],
-        translate: [{
-          value: -0.1,
-          delay: 0,
-          easing: 'linear'
-        }, {
-          value: 0,
-          delay: 0,
-          easing: 'linear'
-        }],
-        duration: 250,
-        delay: 0,
-        update: function update(anime) {
-          game.ball.visual.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
-          game.ball.visual.setLocalPosition(0, animate.translate, 0);
-        }
-      }); //game.app.fire("level:changeColor", new pc.Color(1,1,1,1));
     });
 
     return _this;
@@ -1258,7 +1362,7 @@ function (_Scene) {
 
     _this.title.addComponent("element", {
       type: pc.ELEMENTTYPE_TEXT,
-      anchor: new pc.Vec4(0.5, 0.5, 0.5, 0.5),
+      anchor: new pc.Vec4(0.0, 0.0, 0, 0),
       pivot: new pc.Vec2(0.5, 0.5),
       alignment: new pc.Vec2(0.5, 0.5),
       useInput: true,
@@ -1287,11 +1391,20 @@ function (_Scene) {
 
     _this.backBtn.translateLocal(20, -20, 0);
 
+    _this.screen.addChild(_this.title);
+
     _this.title.setPosition(0, 0.6, 0);
+
+    _this.ballBtn = _this.createBlockButton(_Application.default.ICON_BALL, "BALL", _Application.default.ICON_BLUE_BUTTON);
+    _this.backgroundBtn = _this.createBlockButton(_Application.default.ICON_BACKGROUND, "BACKGROUND", _Application.default.ICON_YELLOW_BUTTON);
+
+    _this.ballBtn.translateLocal(0, -50, 0);
+
+    _this.backgroundBtn.translateLocal(0, -137, 0);
 
     _this.events();
 
-    game.cameraTargetPosition = new pc.Vec3(0, 2, -6);
+    game.cameraTargetPosition = new pc.Vec3(0, 1.8, -6);
     var animation = {
       opacity: 0
     };
@@ -1302,6 +1415,13 @@ function (_Scene) {
       easing: "linear",
       update: function update(anime) {
         _this.backBtn.element.opacity = animation.opacity;
+        _this.title.element.opacity = animation.opacity;
+        _this.ballBtn.element.opacity = animation.opacity;
+        _this.ballBtn.icon.element.opacity = animation.opacity;
+        _this.ballBtn.text.element.opacity = animation.opacity;
+        _this.backgroundBtn.element.opacity = animation.opacity;
+        _this.backgroundBtn.icon.element.opacity = animation.opacity;
+        _this.backgroundBtn.text.element.opacity = animation.opacity;
       }
     });
     return _this;
@@ -1313,7 +1433,53 @@ function (_Scene) {
       var _this2 = this;
 
       this.backBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:menu");
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, -animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:menu");
+      });
+      this.ballBtn.element.on("click", function (event) {
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:customize:ball");
+      });
+      this.backgroundBtn.element.on("click", function (event) {
+        return _this2.app.fire("game:customize:background");
       });
     }
   }, {
@@ -1323,6 +1489,10 @@ function (_Scene) {
 
       return new Promise(function (resolve) {
         _this3.backBtn.element.off();
+
+        _this3.ballBtn.element.off();
+
+        _this3.backgroundBtn.element.off();
 
         var animation = {
           opacity: 1
@@ -1335,9 +1505,31 @@ function (_Scene) {
           update: function update(anime) {
             _this3.backBtn.element.opacity = animation.opacity;
             _this3.title.element.opacity = animation.opacity;
+            _this3.ballBtn.element.opacity = animation.opacity;
+            _this3.ballBtn.icon.element.opacity = animation.opacity;
+            _this3.ballBtn.text.element.opacity = animation.opacity;
+            _this3.backgroundBtn.element.opacity = animation.opacity;
+            _this3.backgroundBtn.icon.element.opacity = animation.opacity;
+            _this3.backgroundBtn.text.element.opacity = animation.opacity;
           },
           complete: function complete(anime) {
             _this3.root.destroy();
+
+            _this3.backBtn.destroy();
+
+            _this3.title.destroy();
+
+            _this3.ballBtn.destroy();
+
+            _this3.ballBtn.icon.destroy();
+
+            _this3.ballBtn.text.destroy();
+
+            _this3.backgroundBtn.destroy();
+
+            _this3.backgroundBtn.icon.destroy();
+
+            _this3.backgroundBtn.text.destroy();
 
             return resolve();
           }
@@ -1354,6 +1546,440 @@ function (_Scene) {
 exports.default = Customize;
 
 },{"../Animation":1,"../Application":2,"./../Scene":4}],11:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Scene2 = _interopRequireDefault(require("./../Scene"));
+
+var _Animation = _interopRequireDefault(require("../Animation"));
+
+var _Application = _interopRequireDefault(require("../Application"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _construct(Parent, args, Class) { if (typeof Reflect !== "undefined" && Reflect.construct) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Parent.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } _setPrototypeOf(subClass.prototype, superClass && superClass.prototype); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.getPrototypeOf || function _getPrototypeOf(o) { return o.__proto__; }; return _getPrototypeOf(o); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var CustomizeBall =
+/*#__PURE__*/
+function (_Scene) {
+  function CustomizeBall(app, game) {
+    var _this;
+
+    _classCallCheck(this, CustomizeBall);
+
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(CustomizeBall).call(this, app, game));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "title", new pc.Entity("title"));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "backBtn", new pc.Entity("backBtn"));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballCurrent", 0);
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballsCount", 2);
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballsDistance", 2.3);
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "balls", []);
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballsInfo", [{
+      name: "Default",
+      price: null,
+      special: null
+    }, {
+      name: "stone",
+      price: 100,
+      special: null
+    }]);
+
+    _this.rotator = new pc.Entity("rotate-element");
+
+    _this.rotator.addComponent("element", {
+      type: pc.ELEMENTTYPE_IMAGE,
+      anchor: new pc.Vec4(0, 0, 1, 1),
+      pivot: new pc.Vec2(0, 0),
+      useInput: true,
+      opacity: 0,
+      color: new pc.Color(1, 0, 0, 0)
+    });
+
+    _this.screen.addChild(_this.rotator);
+
+    _this.title.addComponent("element", {
+      type: pc.ELEMENTTYPE_TEXT,
+      anchor: new pc.Vec4(0.0, 0.0, 0, 0),
+      pivot: new pc.Vec2(0.5, 0.5),
+      alignment: new pc.Vec2(0.5, 0.5),
+      useInput: true,
+      fontAsset: 1,
+      color: _construct(pc.Color, _toConsumableArray(game.config.customize.ui.color)),
+      fontSize: game.config.customize.ui.fontSize,
+      text: "BALL",
+      opacity: 0
+    });
+
+    _this.backBtn.addComponent("element", {
+      type: pc.ELEMENTTYPE_IMAGE,
+      anchor: new pc.Vec4(0, 1, 0, 1),
+      pivot: new pc.Vec2(0, 1),
+      useInput: true,
+      width: 48,
+      height: 48,
+      opacity: 0,
+      sprite: game.iconsSprite,
+      spriteFrame: _Application.default.ICON_BACK
+    });
+
+    _this.screen.addChild(_this.backBtn);
+
+    _this.backBtn.setPosition(-1, 1, 0);
+
+    _this.backBtn.translateLocal(20, -20, 0);
+
+    _this.screen.addChild(_this.title);
+
+    _this.title.setPosition(0, 0.6, 0);
+
+    _this.leftButton = _this.createArrowButton(_Application.default.ICON_ARROW_LEFT);
+    _this.rightButton = _this.createArrowButton(_Application.default.ICON_ARROW_RIGHT);
+
+    _this.events();
+
+    game.cameraTargetPosition = new pc.Vec3(0, 2.4, -6);
+
+    _this.createBalls();
+
+    var animation = {
+      opacity: 0
+    };
+    anime({
+      targets: animation,
+      opacity: 1,
+      duration: 200,
+      easing: "linear",
+      update: function update(anime) {
+        _this.backBtn.element.opacity = animation.opacity;
+        _this.title.element.opacity = animation.opacity;
+
+        if (animation.opacity >= 0.2) {
+          _this.leftButton.element.opacity = _this.ballCurrent === 0 ? 0.2 : animation.opacity;
+          _this.rightButton.element.opacity = _this.ballCurrent === _this.balls.length - 1 ? 0.2 : animation.opacity;
+        } else {
+          _this.leftButton.element.opacity = animation.opacity;
+          _this.rightButton.element.opacity = animation.opacity;
+        }
+      }
+    });
+    return _this;
+  }
+
+  _createClass(CustomizeBall, [{
+    key: "createArrowButton",
+    value: function createArrowButton(icon) {
+      var button = new pc.Entity("arrow-button");
+      var anchor = icon === _Application.default.ICON_ARROW_LEFT ? [0, 0.5, 0, 0.5] : [1, 0.5, 1, 0.5];
+      var pivot = icon === _Application.default.ICON_ARROW_LEFT ? [0, 0.5] : [1, 0.5];
+      button.addComponent("element", {
+        type: pc.ELEMENTTYPE_IMAGE,
+        anchor: _construct(pc.Vec4, anchor),
+        pivot: _construct(pc.Vec2, pivot),
+        useInput: true,
+        width: 34,
+        height: 63,
+        opacity: 0,
+        sprite: game.iconsSprite,
+        spriteFrame: icon
+      });
+      this.screen.addChild(button);
+      button.setPosition(0, 0, 0);
+
+      if (icon === _Application.default.ICON_ARROW_LEFT) {
+        button.setLocalPosition(20, 0, 0);
+      }
+
+      if (icon === _Application.default.ICON_ARROW_RIGHT) {
+        button.setLocalPosition(-20, 0, 0);
+      }
+
+      return button;
+    }
+  }, {
+    key: "events",
+    value: function events() {
+      var _this2 = this;
+
+      this.backBtn.element.on("click", function (event) {
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, -animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:customize");
+      });
+      this.rotator.element.on("touchstart", function (event) {
+        var touch = event.event.touches[0];
+        _this2.lastTouchCoords = {
+          x: touch.pageX,
+          y: touch.pageY
+        };
+      });
+      this.rotator.element.on("touchmove", function (event) {
+        var touch = event.event.touches[0];
+        var coords = {
+          x: touch.pageX,
+          y: touch.pageY
+        };
+        var velocity = {
+          x: _this2.lastTouchCoords.x - coords.x,
+          y: _this2.lastTouchCoords.y - coords.y
+        };
+        _this2.lastTouchCoords = coords;
+        var ball = _this2.balls[_this2.ballCurrent];
+        ball.visual.rigidbody.angularVelocity = new pc.Vec3(velocity.y * 50, -velocity.x * 50, 0);
+
+        _this2.resetBallVelocity();
+      });
+      this.rotator.element.on("touchend", function (event) {
+        _this2.resetBallVelocity();
+      });
+      this.leftButton.element.on("click", function (event) {
+        if (_this2.ballCurrent <= 0) return;
+        var cameraTarget = game.cameraTargetPosition;
+        game.cameraTargetPosition = new pc.Vec3(cameraTarget.x + _this2.ballsDistance, cameraTarget.y, cameraTarget.z);
+        _this2.balls[--_this2.ballCurrent].visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0);
+
+        _this2.checkArrows();
+      });
+      this.rightButton.element.on("click", function (event) {
+        if (_this2.ballCurrent === _this2.ballsCount - 1) return;
+        var cameraTarget = game.cameraTargetPosition;
+        game.cameraTargetPosition = new pc.Vec3(cameraTarget.x - _this2.ballsDistance, cameraTarget.y, cameraTarget.z);
+        _this2.balls[++_this2.ballCurrent].visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0);
+
+        _this2.checkArrows();
+      });
+    }
+  }, {
+    key: "checkArrows",
+    value: function checkArrows() {
+      this.leftButton.element.opacity = this.ballCurrent === 0 ? 0.2 : 1;
+      this.rightButton.element.opacity = this.ballCurrent === this.balls.length - 1 ? 0.2 : 1;
+    }
+  }, {
+    key: "resetBallVelocity",
+    value: function resetBallVelocity() {
+      var ball = this.balls[this.ballCurrent];
+      var velocity = ball.visual.rigidbody.angularVelocity;
+      var animation = {
+        x: velocity.x,
+        y: velocity.y
+      };
+      if (this.resetVelocity) this.resetVelocity.pause();
+      this.resetVelocity = anime({
+        targets: animation,
+        x: 0,
+        y: 0,
+        delay: 100,
+        duration: 500,
+        easing: "linear",
+        update: function update(anime) {
+          ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.x, animation.y, 0);
+        }
+      });
+    }
+  }, {
+    key: "hide",
+    value: function hide() {
+      var _this3 = this;
+
+      return new Promise(function (resolve) {
+        _this3.backBtn.element.off();
+
+        _this3.leftButton.element.off();
+
+        _this3.rightButton.element.off();
+
+        _this3.rotator.element.off();
+
+        var animation = {
+          opacity: 1
+        };
+        anime({
+          targets: animation,
+          opacity: 0,
+          duration: 200,
+          easing: "linear",
+          update: function update(anime) {
+            _this3.backBtn.element.opacity = animation.opacity;
+            _this3.title.element.opacity = animation.opacity;
+            if (_this3.leftButton.element.opacity >= animation.opacity) _this3.leftButton.element.opacity = animation.opacity;
+            if (_this3.rightButton.element.opacity >= animation.opacity) _this3.rightButton.element.opacity = animation.opacity;
+          },
+          complete: function complete(anime) {
+            _this3.root.destroy();
+
+            _this3.backBtn.destroy();
+
+            _this3.title.destroy();
+
+            _this3.leftButton.destroy();
+
+            _this3.leftButton.destroy();
+
+            _this3.rotator.destroy();
+
+            _this3.label.destroy();
+
+            _this3.label.icon.destroy();
+
+            _this3.label.text.destroy();
+
+            return resolve();
+          }
+        });
+      });
+    }
+  }, {
+    key: "createBalls",
+    value: function createBalls() {
+      var _this4 = this;
+
+      for (var i = 0; i < this.ballsCount; i++) {
+        var ball = null;
+
+        if (i === game.ballStyleId) {
+          ball = game.ball;
+        } else {
+          ball = _Application.default.createBall(i);
+          ball.rigidbody.mass = 0;
+          this.root.addChild(ball);
+        }
+
+        this.balls.push(ball);
+      }
+
+      this.balls.forEach(function (ball, i) {
+        var x = (game.ballStyleId - i) * -_this4.ballsDistance;
+        ball.rigidbody.type = "static";
+        ball.rigidbody.teleport(-x, 0, 0);
+        ball.rigidbody.type = "dynamic";
+        if (!_this4.label) _this4.label = _this4.createBallLabel(i, x);
+      });
+      this.ballCurrent = game.ballStyleId;
+    }
+  }, {
+    key: "createBallLabel",
+    value: function createBallLabel(id, position) {
+      var label = new pc.Entity("button");
+      label.addComponent("element", {
+        type: pc.ELEMENTTYPE_IMAGE,
+        anchor: new pc.Vec4(0.5, 0.5, 0.5, 0.5),
+        pivot: new pc.Vec2(0.5, 0.5),
+        useInput: true,
+        width: 168,
+        height: 60,
+        sprite: game.iconsSprite,
+        opacity: 1,
+        spriteFrame: _Application.default.ICON_DEFAULT_BUTTON_BACKGROUND
+      });
+      var textEntity = new pc.Entity("text");
+      textEntity.addComponent("element", {
+        type: pc.ELEMENTTYPE_TEXT,
+        anchor: new pc.Vec4(0, 0.5, 0, 0),
+        pivot: new pc.Vec2(0, 0.5),
+        useInput: true,
+        width: 242,
+        height: 80,
+        fontAsset: game.app.assets.find("antonio-regular.json", "font").id,
+        fontSize: 24,
+        opacity: 1,
+        text: "test"
+      });
+      var iconEntity = new pc.Entity("icon");
+      iconEntity.addComponent("element", {
+        type: pc.ELEMENTTYPE_IMAGE,
+        anchor: new pc.Vec4(0, 0.5, 0, 0),
+        pivot: new pc.Vec2(0, 0.5),
+        useInput: true,
+        width: 23,
+        height: 17,
+        sprite: game.iconsSprite,
+        opacity: 1,
+        spriteFrame: _Application.default.ICON_DONE
+      });
+      label.text = textEntity;
+      label.icon = iconEntity;
+      this.screen.addChild(label);
+      label.addChild(textEntity);
+      label.addChild(iconEntity);
+      label.setPosition(0, 0, 0);
+      label.setLocalPosition(0, -100, 0);
+      label.text.setPosition(0, 0, 0);
+      label.icon.setPosition(0, 0, 0);
+      label.text.setLocalPosition(70, 0, 0);
+      label.icon.setLocalPosition(20, 0, 0);
+      label.icon.element.height = 17;
+      label.element.on("click", function (event) {
+        game.setVkVar("ballStyle", id);
+      });
+      return label;
+    }
+  }]);
+
+  _inherits(CustomizeBall, _Scene);
+
+  return CustomizeBall;
+}(_Scene2.default);
+
+exports.default = CustomizeBall;
+
+},{"../Animation":1,"../Application":2,"./../Scene":4}],12:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1439,6 +2065,8 @@ function (_Scene) {
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballSpeed", 7);
 
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "ballRotationSpeed", 500);
+
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "initElementsCount", 10);
 
     _this.events();
@@ -1466,19 +2094,33 @@ function (_Scene) {
       element.opacity = 0;
     });
 
+    _this.resetBallRotation();
+
+    var animation = {
+      opacity: 0
+    };
     anime({
-      targets: {
-        time: 0
-      },
-      time: 1,
+      targets: animation,
+      opacity: 1,
       duration: 300,
       easing: "linear",
       update: function update(anime) {
-        var value = anime.animations[0].currentValue;
-
         _this.elements.forEach(function (element) {
-          element.opacity = value;
+          element.opacity = animation.opacity;
         });
+      }
+    });
+    var ballRotationAnim = {
+      ballAngularVelocity: 0
+    };
+    anime({
+      targets: ballRotationAnim,
+      ballAngularVelocity: _this.ballRotationSpeed,
+      duration: 300,
+      delay: 250,
+      easing: "linear",
+      update: function update(anime) {
+        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(ballRotationAnim.ballAngularVelocity, 0, 0);
       }
     });
     game.app.fire("level:resetBallSpeed");
@@ -1694,7 +2336,7 @@ function (_Scene) {
         duration: 250,
         delay: 750,
         update: function update(anime) {
-          game.ball.visual.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
+          game.ball.setLocalScale(1 + (1 - animate.scale), animate.scale, 1 + (1 - animate.scale));
           game.ball.visual.setLocalPosition(0, animate.translate, 0);
         }
       });
@@ -1736,6 +2378,15 @@ function (_Scene) {
       material.diffuse = color;
     }
   }, {
+    key: "resetBallRotation",
+    value: function resetBallRotation() {
+      var currentRotation = game.ball.visual.getRotation().clone();
+      var currentGraphRotation = game.ball.visual.model.model.graph.getLocalRotation().clone();
+      var targetRotation = new pc.Quat().mul2(currentRotation, currentGraphRotation);
+      game.ball.visual.model.model.graph.setLocalRotation(targetRotation);
+      game.ball.visual.setRotation(new pc.Quat(0, 0, 0, 1));
+    }
+  }, {
     key: "events",
     value: function events() {
       var _this3 = this;
@@ -1766,6 +2417,7 @@ function (_Scene) {
       });
       game.app.on("level:pause", function () {
         game.ball.rigidbody.disableSimulation();
+        game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0);
         if (_this3.ballJumpAnimation) _this3.ballJumpAnimation.pause();
         var pauseScene = new _PauseMenu.default(game.app, game);
         pauseScene.score = _this3.score;
@@ -1787,6 +2439,7 @@ function (_Scene) {
       game.app.on("level:unpause", function (scene) {
         scene.hide().then(function () {
           game.ball.rigidbody.enableSimulation();
+          game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(_this3.ballRotationSpeed, 0, 0);
           if (_this3.ballJumpAnimation) _this3.ballJumpAnimation.play();
         });
         var animation = {
@@ -1861,7 +2514,8 @@ function (_Scene) {
     value: function checkColor(color) {
       var ballColor = game.ball.visual.model.model.meshInstances[0].material.diffuse;
 
-      if (ballColor.toString() !== color.toString()) {//this.gameover();
+      if (ballColor.toString() !== color.toString()) {
+        this.gameover();
       } else {
         this.score++;
         this.scoreValueLabel.element.text = this.score;
@@ -1929,12 +2583,13 @@ function (_Scene) {
         _this4.eventsOff();
 
         var currentPosition = game.ball.getPosition();
-        game.ball.visual.setLocalScale(1, 1, 1);
+        game.ball.setLocalScale(1, 1, 1);
         if (_this4.ballJumpAnimation) _this4.ballJumpAnimation.pause();
         game.cameraTargetPosition = new pc.Vec3(0, 6, currentPosition.z - 6);
         var animation = {
           opacity: 1,
-          ballPosition: currentPosition.y
+          ballPosition: currentPosition.y,
+          ballRotation: _this4.ballRotationSpeed
         };
         var moveBallPromise = new Promise(function (resolveBall) {
           anime({
@@ -1950,6 +2605,20 @@ function (_Scene) {
               game.camera.setPosition(0, 1, -6);
               game.cameraTargetPosition = new pc.Vec3(0, 1, -6);
               game.ballTargetPosition = new pc.Vec3(0, 0, 0);
+              resolveBall();
+            }
+          });
+        });
+        var rotateBallPromise = new Promise(function (resolveBall) {
+          anime({
+            targets: animation,
+            duration: 1000,
+            ballRotation: 0,
+            easing: "linear",
+            update: function update(anime) {
+              game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(animation.ballRotation, 0, 0);
+            },
+            complete: function complete(anime) {
               resolveBall();
             }
           });
@@ -2004,7 +2673,7 @@ function (_Scene) {
             }
           });
         });
-        Promise.all([moveBallPromise, hideUI]).then(function () {
+        Promise.all([moveBallPromise, rotateBallPromise, hideUI]).then(function () {
           _this4.root.destroy();
 
           resolve();
@@ -2047,7 +2716,7 @@ function (_Scene) {
 
 exports.default = GameLoop;
 
-},{"../Application":2,"../levelElements/ChangeElement":5,"../levelElements/RingElement":7,"../levelElements/SmallPanelElement":9,"./../Scene":4,"./../levelElements/PanelElement":6,"./../levelElements/SafeZoneElement":8,"./PauseMenu":13}],12:[function(require,module,exports){
+},{"../Application":2,"../levelElements/ChangeElement":5,"../levelElements/RingElement":7,"../levelElements/SmallPanelElement":9,"./../Scene":4,"./../levelElements/PanelElement":6,"./../levelElements/SafeZoneElement":8,"./PauseMenu":14}],13:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2144,10 +2813,30 @@ function (_Scene) {
       var _this2 = this;
 
       this.startGameBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:start");
+        _this2.app.fire("game:start");
       });
       this.customizeBtn.element.on("click", function (event) {
-        return _this2.app.fire("game:customize");
+        var animation = {
+          speed: 0
+        };
+        anime({
+          targets: animation,
+          speed: [{
+            value: 300,
+            easing: 'easeOutQuint',
+            duration: 300
+          }, {
+            value: 0,
+            easing: 'easeOutCirc',
+            duration: 700
+          }],
+          duration: 1000,
+          update: function update(anime) {
+            game.ball.visual.rigidbody.angularVelocity = new pc.Vec3(0, animation.speed, 0);
+          }
+        });
+
+        _this2.app.fire("game:customize");
       });
     }
   }, {
@@ -2205,7 +2894,7 @@ function (_Scene) {
 
 exports.default = MainMenu;
 
-},{"../Animation":1,"../Application":2,"./../Scene":4}],13:[function(require,module,exports){
+},{"../Animation":1,"../Application":2,"./../Scene":4}],14:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2237,21 +2926,37 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
 
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
 function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _get(target, property, receiver) { if (typeof Reflect !== "undefined" && Reflect.get) { _get = Reflect.get; } else { _get = function _get(target, property, receiver) { var base = _superPropBase(target, property); if (!base) return; var desc = Object.getOwnPropertyDescriptor(base, property); if (desc.get) { return desc.get.call(receiver); } return desc.value; }; } return _get(target, property, receiver || target); }
+
+function _superPropBase(object, property) { while (!Object.prototype.hasOwnProperty.call(object, property)) { object = _getPrototypeOf(object); if (object === null) break; } return object; }
 
 function _getPrototypeOf(o) { _getPrototypeOf = Object.getPrototypeOf || function _getPrototypeOf(o) { return o.__proto__; }; return _getPrototypeOf(o); }
-
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 var PauseMenu =
 /*#__PURE__*/
 function (_Scene) {
+  _createClass(PauseMenu, [{
+    key: "createBlockButton",
+    value: function createBlockButton(icon, text, background) {
+      var button = _get(_getPrototypeOf(PauseMenu.prototype), "createBlockButton", this).call(this, icon, text, background);
+
+      button.element.layers = [6];
+      button.icon.element.layers = [6];
+      button.text.element.layers = [6];
+      return button;
+    }
+  }]);
+
   function PauseMenu(app, game) {
     var _this;
 
@@ -2266,6 +2971,8 @@ function (_Scene) {
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "background", new pc.Entity("pause-background"));
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "title", new pc.Entity("title"));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "blurPower", 2);
 
     _this.background.addComponent("element", {
       type: pc.ELEMENTTYPE_IMAGE,
@@ -2293,7 +3000,8 @@ function (_Scene) {
       color: _construct(pc.Color, _toConsumableArray(game.config.gameLoop.ui.color)),
       fontSize: 48,
       opacity: 0,
-      text: "PAUSE"
+      text: "PAUSE",
+      layers: [6]
     }); // Score value
 
 
@@ -2306,7 +3014,8 @@ function (_Scene) {
       color: _construct(pc.Color, _toConsumableArray(game.config.gameLoop.ui.color)),
       fontSize: game.config.gameLoop.ui.fontSize,
       opacity: 0,
-      text: 0
+      text: 0,
+      layers: [6]
     }); // Score
 
 
@@ -2318,7 +3027,8 @@ function (_Scene) {
       color: new pc.Color().fromString("#8489C0"),
       fontSize: 40,
       text: game.config.gameLoop.ui.scoreText,
-      opacity: 0
+      opacity: 0,
+      layers: [6]
     });
 
     _this.screen.addChild(_this.scoreLabel);
@@ -2348,7 +3058,7 @@ function (_Scene) {
     anime({
       targets: animation,
       opacity: 1,
-      blur: 3,
+      blur: _this.blurPower,
       easing: "linear",
       duration: 300,
       update: function update(anime) {
@@ -2361,7 +3071,8 @@ function (_Scene) {
         _this.scoreLabel.element.opacity = animation.opacity;
         _this.scoreValueLabel.element.opacity = animation.opacity;
         _this.title.element.opacity = animation.opacity;
-        _this.background.element.opacity = animation.opacity / 1.3;
+        game.app.root.script.blur.power = animation.blur;
+        _this.background.element.opacity = animation.opacity / 3;
       }
     });
     return _this;
@@ -2392,7 +3103,8 @@ function (_Scene) {
         _this3.mainMenuBtn.element.off();
 
         var animation = {
-          opacity: 1
+          opacity: 1,
+          blur: _this3.blurPower
         };
         anime({
           targets: animation,
@@ -2407,10 +3119,11 @@ function (_Scene) {
             _this3.mainMenuBtn.element.opacity = animation.opacity;
             _this3.mainMenuBtn.text.element.opacity = animation.opacity;
             _this3.mainMenuBtn.icon.element.opacity = animation.opacity;
-            _this3.background.element.opacity = animation.opacity / 1.3;
+            _this3.background.element.opacity = animation.opacity / 3;
             _this3.title.element.opacity = animation.opacity;
             _this3.scoreLabel.element.opacity = animation.opacity;
             _this3.scoreValueLabel.element.opacity = animation.opacity;
+            game.app.root.script.blur.power = animation.blur;
           },
           complete: function complete(anime) {
             _this3.root.destroy();
@@ -2446,7 +3159,7 @@ function (_Scene) {
 
 exports.default = PauseMenu;
 
-},{"../Application":2,"./../Scene":4}],14:[function(require,module,exports){
+},{"../Application":2,"./../Scene":4}],15:[function(require,module,exports){
 "use strict";
 
 var _Application = _interopRequireDefault(require("./js/Application"));
@@ -2575,4 +3288,4 @@ app.configure("config/playcanvas.json", function (err) {
   });
 });
 
-},{"./js/Application":2}]},{},[14]);
+},{"./js/Application":2}]},{},[15]);

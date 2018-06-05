@@ -22,10 +22,10 @@ if (typeof(document) !== "undefined") {
 var Fps = pc.createScript('fps');
 
 Fps.prototype.initialize = function () {
-    this.fps = new FPSMeter({heat: true, graph: true});
+    this.fps = new FPSMeter({heat: true, graph: true, maxFps: 60});
 };
 
     // Called every frame, dt is time in seconds since last update
 Fps.prototype.update = function (dt) {
-    this.fps.tick();
+    //this.fps.tick();
 };
