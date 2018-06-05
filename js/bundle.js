@@ -1858,8 +1858,8 @@ function (_Scene) {
           update: function update(anime) {
             _this3.backBtn.element.opacity = animation.opacity;
             _this3.title.element.opacity = animation.opacity;
-            _this3.leftButton.element.opacity = animation.opacity;
-            _this3.rightButton.element.opacity = animation.opacity;
+            if (_this3.leftButton.element.opacity >= animation.opacity) _this3.leftButton.element.opacity = animation.opacity;
+            if (_this3.rightButton.element.opacity >= animation.opacity) _this3.rightButton.element.opacity = animation.opacity;
           },
           complete: function complete(anime) {
             _this3.root.destroy();
@@ -1873,6 +1873,12 @@ function (_Scene) {
             _this3.leftButton.destroy();
 
             _this3.rotator.destroy();
+
+            _this3.label.destroy();
+
+            _this3.label.icon.destroy();
+
+            _this3.label.text.destroy();
 
             return resolve();
           }
@@ -1959,6 +1965,9 @@ function (_Scene) {
       label.text.setLocalPosition(70, 0, 0);
       label.icon.setLocalPosition(20, 0, 0);
       label.icon.element.height = 17;
+      label.element.on("click", function (event) {
+        game.setVkVar("ballStyle", id);
+      });
       return label;
     }
   }]);
