@@ -59,8 +59,6 @@ export default class MainMenu extends Scene {
         game.cameraTargetRotation = (new pc.Quat).setFromEulerAngles(-22, 180, 0)
     }
 
-
-
     events() {
         this.startGameBtn.element.on("click", event =>  {
             this.app.fire("game:start")

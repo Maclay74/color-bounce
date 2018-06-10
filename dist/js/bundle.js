@@ -73,6 +73,8 @@ var _GameLoop = _interopRequireDefault(require("./scenes/GameLoop"));
 
 var _CustomizeBall = _interopRequireDefault(require("./scenes/CustomizeBall"));
 
+var _LocalStorage = _interopRequireDefault(require("./storages/LocalStorage"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest(); }
@@ -130,11 +132,12 @@ function () {
     _defineProperty(this, "ball", new pc.Entity("ball"));
 
     this.app = app;
-    this.scene = new _Scene.default(this.app, this); // Set up game events
+    this.scene = new _Scene.default(this.app, this);
+    this.storage = new _LocalStorage.default(); // Set up game events
 
     this.events(); // Get config and apply some settings
 
-    this.loadConfig().then(this.initVk.bind(this)).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
+    this.loadConfig().then(this.storage.init).then(this.preloadAssets.bind(this)).then(this.hierarchy.bind(this)).then(function () {
       app.fire("game:menu");
     });
   }
@@ -181,7 +184,7 @@ function () {
         });
       });
       this.app.on("game:customize:background", function () {
-        _this2.setVkVar("ballStyle", 0); //todo implement that
+        _this2.storage.set("ballStyle", 0); //todo implement that
 
 
         return;
@@ -300,6 +303,7 @@ function () {
       setIcon([406, 264, 34, 63], "ICON_ARROW_LEFT");
       setIcon([440, 264, 34, 63], "ICON_ARROW_RIGHT");
       setIcon([0, 327, 167, 60], "ICON_DEFAULT_BUTTON_BACKGROUND");
+      setIcon([0, 387, 167, 60], "ICON_CURRENT_BUTTON_BACKGROUND");
       setIcon([168, 327, 23, 17], "ICON_DONE");
       setIcon([168, 344, 23, 20], "ICON_COIN");
       this.iconsSprite.endUpdate();
@@ -379,8 +383,8 @@ function () {
 
         _this7.camera.setEulerAngles(0, 180, 0);
 
-        _this7.getVkVar("ballStyle", 0).then(function (styleId) {
-          _this7.ballStyleId = styleId;
+        _this7.storage.get("ballStyle", 0).then(function (styleId) {
+          _this7.ballStyleId = parseInt(styleId);
           _this7.ball = Application.createBall(_this7.ballStyleId);
 
           _this7.app.root.addChild(_this7.ball);
@@ -416,67 +420,12 @@ function () {
       }, {});
     }
   }, {
-    key: "initVk",
-    value: function initVk() {
-      if (!VK) {
-        throw new Error("VK isn't available");
-      }
-
-      return new Promise(function (resolve, reject) {
-        if (!VK) reject("VK isn't available");
-
-        try {
-          VK.init(function () {
-            return resolve(VK);
-          }, function () {
-            //alert("VK problem, disabled");
-            return resolve("VK loading failed");
-          }, '5.60');
-        } catch (e) {
-          //alert("VK problem, disabled");
-          return resolve("VK loading failed");
-        }
-      });
-    }
-  }, {
     key: "getAssets",
     value: function getAssets() {
       return new Promise(function (resolve) {
         var assets = [["assets/font/antonio-regular.json", "font"], ["assets/font/chathura-regular.json", "font"], ["assets/images/background.png", "texture"], ["assets/images/icons.png", "texture"], ["assets/scripts/fps.js", "script"], ["assets/scripts/blur.js", "script"], ["assets/models/ring/ring.json", "model"], ["assets/shaders/blurPS.glsl", "shader"], ["assets/shaders/blurExcludePS.glsl", "shader"]];
         Promise.all([]).then(function () {
           resolve(assets);
-        });
-      });
-    }
-  }, {
-    key: "getVkVar",
-    value: function getVkVar(key, defaultValue) {
-      var _this8 = this;
-
-      return new Promise(function (resolve) {
-        if (!VK._bridge) return resolve(defaultValue);
-        VK.api("storage.get", {
-          key: key
-        }).then(function (response) {
-          if (response.response === "") {
-            _this8.setVkVar(key, defaultValue);
-
-            return resolve(defaultValue);
-          }
-
-          return resolve(response.response);
-        });
-      });
-    }
-  }, {
-    key: "setVkVar",
-    value: function setVkVar(key, value) {
-      return new Promise(function (resolve) {
-        VK.api("storage.set", {
-          key: key,
-          value: value
-        }).then(function (response) {
-          return resolve(response.response);
         });
       });
     }
@@ -574,7 +523,7 @@ function () {
 
 exports.default = Application;
 
-},{"./Scene":4,"./scenes/Customize":10,"./scenes/CustomizeBall":11,"./scenes/GameLoop":12,"./scenes/MainMenu":13}],3:[function(require,module,exports){
+},{"./Scene":4,"./scenes/Customize":11,"./scenes/CustomizeBall":12,"./scenes/GameLoop":13,"./scenes/MainMenu":14,"./storages/LocalStorage":16}],3:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -783,6 +732,51 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var Storage =
+/*#__PURE__*/
+function () {
+  function Storage() {
+    _classCallCheck(this, Storage);
+  }
+
+  _createClass(Storage, [{
+    key: "init",
+    value: function init() {
+      return new Promise(function (resolve) {
+        return resolve();
+      });
+    }
+  }, {
+    key: "get",
+    value: function get(key, defaultValue) {
+      throw new Error("Not implemented in base class");
+    }
+  }, {
+    key: "set",
+    value: function set(key, value) {
+      throw new Error("Not implemented in base class");
+    }
+  }]);
+
+  return Storage;
+}();
+
+exports.default = Storage;
+
+},{}],6:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
 var _PanelElement2 = _interopRequireDefault(require("./PanelElement"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -837,7 +831,7 @@ function (_PanelElement) {
 
 exports.default = ChangeElement;
 
-},{"./PanelElement":6}],6:[function(require,module,exports){
+},{"./PanelElement":7}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1007,7 +1001,7 @@ function (_LevelElement) {
 
 exports.default = PanelElement;
 
-},{"./../Animation":1,"./../LevelElement":3}],7:[function(require,module,exports){
+},{"./../Animation":1,"./../LevelElement":3}],8:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1151,7 +1145,7 @@ function (_LevelElement) {
 
 exports.default = RingElement;
 
-},{"./../LevelElement":3}],8:[function(require,module,exports){
+},{"./../LevelElement":3}],9:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1237,7 +1231,7 @@ function (_PanelElement) {
 
 exports.default = SafeZoneElement;
 
-},{"./PanelElement":6}],9:[function(require,module,exports){
+},{"./PanelElement":7}],10:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1300,7 +1294,7 @@ function (_PanelElement) {
 
 exports.default = SmallPanelElement;
 
-},{"./../LevelElement":3,"./PanelElement":6}],10:[function(require,module,exports){
+},{"./../LevelElement":3,"./PanelElement":7}],11:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1545,7 +1539,7 @@ function (_Scene) {
 
 exports.default = Customize;
 
-},{"../Animation":1,"../Application":2,"./../Scene":4}],11:[function(require,module,exports){
+},{"../Animation":1,"../Application":2,"./../Scene":4}],12:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1618,7 +1612,7 @@ function (_Scene) {
       price: null,
       special: null
     }, {
-      name: "stone",
+      name: "Stone",
       price: 100,
       special: null
     }]);
@@ -1740,6 +1734,20 @@ function (_Scene) {
       var _this2 = this;
 
       this.backBtn.element.on("click", function (event) {
+        // If we have a new ball
+        if (game.ballStyleId !== _this2.ballCurrent) {
+          game.ball.visual.destroy();
+          game.ball.destroy();
+          game.ballStyleId = _this2.ballCurrent;
+          game.ball = _this2.balls[_this2.ballCurrent];
+          game.ball.reparent(game.app.root);
+          game.ball.rigidbody.type = "static";
+          game.ball.rigidbody.teleport(0, 0, 0);
+          game.ball.rigidbody.type = "dynamic";
+          game.camera.setPosition(0, 2.4, -6);
+          game.cameraTargetPosition = new pc.Vec3(0, 2.4, -6);
+        }
+
         var animation = {
           speed: 0
         };
@@ -1788,6 +1796,38 @@ function (_Scene) {
       this.rotator.element.on("touchend", function (event) {
         _this2.resetBallVelocity();
       });
+
+      var updateLabel = function updateLabel() {
+        var animation = {
+          opacity: 1
+        };
+        anime({
+          targets: animation,
+          opacity: 0,
+          duration: 150,
+          easing: "linear",
+          update: function update(anime) {
+            _this2.label.element.opacity = animation.opacity;
+            _this2.label.icon.element.opacity = animation.opacity;
+            _this2.label.text.element.opacity = animation.opacity;
+          },
+          complete: function complete() {
+            _this2.label = _this2.createBallLabel(_this2.ballCurrent);
+            anime({
+              targets: animation,
+              opacity: 1,
+              duration: 150,
+              easing: "linear",
+              update: function update(anime) {
+                _this2.label.element.opacity = animation.opacity;
+                _this2.label.icon.element.opacity = animation.opacity;
+                _this2.label.text.element.opacity = animation.opacity;
+              }
+            });
+          }
+        });
+      };
+
       this.leftButton.element.on("click", function (event) {
         if (_this2.ballCurrent <= 0) return;
         var cameraTarget = game.cameraTargetPosition;
@@ -1795,6 +1835,8 @@ function (_Scene) {
         _this2.balls[--_this2.ballCurrent].visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0);
 
         _this2.checkArrows();
+
+        updateLabel();
       });
       this.rightButton.element.on("click", function (event) {
         if (_this2.ballCurrent === _this2.ballsCount - 1) return;
@@ -1803,6 +1845,8 @@ function (_Scene) {
         _this2.balls[++_this2.ballCurrent].visual.rigidbody.angularVelocity = new pc.Vec3(0, 0, 0);
 
         _this2.checkArrows();
+
+        updateLabel();
       });
     }
   }, {
@@ -1858,6 +1902,9 @@ function (_Scene) {
           update: function update(anime) {
             _this3.backBtn.element.opacity = animation.opacity;
             _this3.title.element.opacity = animation.opacity;
+            _this3.label.element.opacity = animation.opacity;
+            _this3.label.icon.element.opacity = animation.opacity;
+            _this3.label.text.element.opacity = animation.opacity;
             if (_this3.leftButton.element.opacity >= animation.opacity) _this3.leftButton.element.opacity = animation.opacity;
             if (_this3.rightButton.element.opacity >= animation.opacity) _this3.rightButton.element.opacity = animation.opacity;
           },
@@ -1909,13 +1956,31 @@ function (_Scene) {
         ball.rigidbody.type = "static";
         ball.rigidbody.teleport(-x, 0, 0);
         ball.rigidbody.type = "dynamic";
-        if (!_this4.label) _this4.label = _this4.createBallLabel(i, x);
       });
       this.ballCurrent = game.ballStyleId;
+      this.label = this.createBallLabel(this.ballCurrent);
+      var animation = {
+        opacity: 0
+      };
+      anime({
+        targets: animation,
+        opacity: 1,
+        duration: 150,
+        easing: "linear",
+        update: function update(anime) {
+          _this4.label.element.opacity = animation.opacity;
+          _this4.label.icon.element.opacity = animation.opacity;
+          _this4.label.text.element.opacity = animation.opacity;
+        }
+      });
     }
   }, {
     key: "createBallLabel",
-    value: function createBallLabel(id, position) {
+    value: function createBallLabel(id) {
+      var _this5 = this;
+
+      var info = this.ballsInfo[id];
+      var current = game.ballStyleId === id;
       var label = new pc.Entity("button");
       label.addComponent("element", {
         type: pc.ELEMENTTYPE_IMAGE,
@@ -1925,48 +1990,50 @@ function (_Scene) {
         width: 168,
         height: 60,
         sprite: game.iconsSprite,
-        opacity: 1,
-        spriteFrame: _Application.default.ICON_DEFAULT_BUTTON_BACKGROUND
+        opacity: 0,
+        spriteFrame: current ? _Application.default.ICON_CURRENT_BUTTON_BACKGROUND : _Application.default.ICON_DEFAULT_BUTTON_BACKGROUND
       });
       var textEntity = new pc.Entity("text");
       textEntity.addComponent("element", {
         type: pc.ELEMENTTYPE_TEXT,
-        anchor: new pc.Vec4(0, 0.5, 0, 0),
-        pivot: new pc.Vec2(0, 0.5),
+        anchor: new pc.Vec4(0.5, 0, 0, 0),
+        pivot: new pc.Vec2(0.5, 0.5),
         useInput: true,
         width: 242,
         height: 80,
         fontAsset: game.app.assets.find("antonio-regular.json", "font").id,
         fontSize: 24,
-        opacity: 1,
-        text: "test"
+        opacity: 0,
+        text: info.name
       });
       var iconEntity = new pc.Entity("icon");
       iconEntity.addComponent("element", {
         type: pc.ELEMENTTYPE_IMAGE,
-        anchor: new pc.Vec4(0, 0.5, 0, 0),
+        anchor: new pc.Vec4(0, 0, 0, 0),
         pivot: new pc.Vec2(0, 0.5),
         useInput: true,
         width: 23,
         height: 17,
         sprite: game.iconsSprite,
-        opacity: 1,
+        opacity: 0,
         spriteFrame: _Application.default.ICON_DONE
       });
       label.text = textEntity;
       label.icon = iconEntity;
+      label.addChild(textEntity); //label.addChild(iconEntity);
+
       this.screen.addChild(label);
-      label.addChild(textEntity);
-      label.addChild(iconEntity);
       label.setPosition(0, 0, 0);
       label.setLocalPosition(0, -100, 0);
       label.text.setPosition(0, 0, 0);
       label.icon.setPosition(0, 0, 0);
-      label.text.setLocalPosition(70, 0, 0);
-      label.icon.setLocalPosition(20, 0, 0);
-      label.icon.element.height = 17;
+      label.text.setLocalPosition(0, 30, 0);
+      label.icon.setLocalPosition(20, 30, 0); //label.icon.element.height = 17;
+
       label.element.on("click", function (event) {
-        game.setVkVar("ballStyle", id);
+        game.storage.set("ballStyle", id);
+        _this5.ballCurrent = id;
+        label.element.spriteFrame = _Application.default.ICON_CURRENT_BUTTON_BACKGROUND;
       });
       return label;
     }
@@ -1979,7 +2046,7 @@ function (_Scene) {
 
 exports.default = CustomizeBall;
 
-},{"../Animation":1,"../Application":2,"./../Scene":4}],12:[function(require,module,exports){
+},{"../Animation":1,"../Application":2,"./../Scene":4}],13:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2716,7 +2783,7 @@ function (_Scene) {
 
 exports.default = GameLoop;
 
-},{"../Application":2,"../levelElements/ChangeElement":5,"../levelElements/RingElement":7,"../levelElements/SmallPanelElement":9,"./../Scene":4,"./../levelElements/PanelElement":6,"./../levelElements/SafeZoneElement":8,"./PauseMenu":14}],13:[function(require,module,exports){
+},{"../Application":2,"../levelElements/ChangeElement":6,"../levelElements/RingElement":8,"../levelElements/SmallPanelElement":10,"./../Scene":4,"./../levelElements/PanelElement":7,"./../levelElements/SafeZoneElement":9,"./PauseMenu":15}],14:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2894,7 +2961,7 @@ function (_Scene) {
 
 exports.default = MainMenu;
 
-},{"../Animation":1,"../Application":2,"./../Scene":4}],14:[function(require,module,exports){
+},{"../Animation":1,"../Application":2,"./../Scene":4}],15:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -3159,7 +3226,80 @@ function (_Scene) {
 
 exports.default = PauseMenu;
 
-},{"../Application":2,"./../Scene":4}],15:[function(require,module,exports){
+},{"../Application":2,"./../Scene":4}],16:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Storage2 = _interopRequireDefault(require("./../Storage"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } _setPrototypeOf(subClass.prototype, superClass && superClass.prototype); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.getPrototypeOf || function _getPrototypeOf(o) { return o.__proto__; }; return _getPrototypeOf(o); }
+
+var LocalStorage =
+/*#__PURE__*/
+function (_Storage) {
+  function LocalStorage() {
+    var _this;
+
+    _classCallCheck(this, LocalStorage);
+
+    _this = _possibleConstructorReturn(this, _getPrototypeOf(LocalStorage).call(this));
+
+    if (!window.localStorage) {
+      throw new Error("This storage type is not supported");
+    }
+
+    return _this;
+  }
+
+  _createClass(LocalStorage, [{
+    key: "get",
+    value: function get(key, defaultValue) {
+      return new Promise(function (resolve) {
+        var item = localStorage.getItem(key);
+        if (!item) return resolve(defaultValue);
+        return resolve(item);
+      });
+    }
+  }, {
+    key: "set",
+    value: function set(key, value) {
+      return new Promise(function (resolve) {
+        localStorage.setItem(key, value);
+        return resolve(value);
+      });
+    }
+  }]);
+
+  _inherits(LocalStorage, _Storage);
+
+  return LocalStorage;
+}(_Storage2.default);
+
+exports.default = LocalStorage;
+
+},{"./../Storage":5}],17:[function(require,module,exports){
 "use strict";
 
 var _Application = _interopRequireDefault(require("./js/Application"));
@@ -3288,4 +3428,4 @@ app.configure("config/playcanvas.json", function (err) {
   });
 });
 
-},{"./js/Application":2}]},{},[15]);
+},{"./js/Application":2}]},{},[17]);

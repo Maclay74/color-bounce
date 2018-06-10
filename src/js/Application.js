@@ -3,13 +3,11 @@ import MainMenu from "./scenes/MainMenu";
 import Customize from "./scenes/Customize";
 import GameLoop from "./scenes/GameLoop";
 import CustomizeBall from "./scenes/CustomizeBall";
+import LocalStorage from "./storages/LocalStorage";
 
 export default class Application {
 
     configFile = "config/game.json";
-
-
-
     camera = new pc.Entity('camera');
     cameraTargetPosition = new pc.Vec3();
     cameraTargetRotation = new pc.Quat(0, 1, 0, 1);
@@ -28,12 +26,14 @@ export default class Application {
         this.app = app;
         this.scene = new Scene(this.app, this);
 
+        this.storage = new LocalStorage();
+
         // Set up game events
         this.events();
 
         // Get config and apply some settings
         this.loadConfig()
-            .then(this.initVk.bind(this))
+            .then(this.storage.init)
             .then(this.preloadAssets.bind(this))
             .then(this.hierarchy.bind(this))
             .then(() => {
@@ -83,7 +83,7 @@ export default class Application {
 
         this.app.on("game:customize:background", () => {
 
-            this.setVkVar("ballStyle", 0);
+            this.storage.set("ballStyle", 0);
 
             //todo implement that
             return;
@@ -284,6 +284,7 @@ export default class Application {
         setIcon([406, 264, 34, 63],   "ICON_ARROW_LEFT");
         setIcon([440, 264, 34, 63],   "ICON_ARROW_RIGHT");
         setIcon([0, 327, 167, 60],    "ICON_DEFAULT_BUTTON_BACKGROUND");
+        setIcon([0, 387, 167, 60],    "ICON_CURRENT_BUTTON_BACKGROUND");
         setIcon([168, 327, 23, 17],   "ICON_DONE");
         setIcon([168, 344, 23, 20],   "ICON_COIN");
 
@@ -364,8 +365,8 @@ export default class Application {
             this.camera.setPosition(0, 0, -0.6);
             this.camera.setEulerAngles(0, 180, 0)
 
-            this.getVkVar("ballStyle", 0).then(styleId => {
-                this.ballStyleId = styleId;
+            this.storage.get("ballStyle", 0).then(styleId => {
+                this.ballStyleId = parseInt(styleId);
                 this.ball = Application.createBall(this.ballStyleId);
                 this.app.root.addChild(this.ball);
             });
@@ -428,29 +429,6 @@ export default class Application {
         return [...new URLSearchParams(document.location.search).entries()].reduce((q, [k, v]) => Object.assign(q, {[k]: v}), {})
     }
 
-    initVk() {
-        if (!VK) {
-            throw new Error("VK isn't available");
-        }
-
-        return new Promise((resolve, reject) => {
-            if (!VK) reject("VK isn't available");
-
-            try {
-                VK.init(() => {
-                    return resolve(VK);
-                }, () => {
-                    //alert("VK problem, disabled");
-                    return resolve("VK loading failed");
-                }, '5.60');
-            } catch (e) {
-                //alert("VK problem, disabled");
-                return resolve("VK loading failed");
-            }
-
-        })
-    }
-
     getAssets() {
 
         return new Promise(resolve => {
@@ -474,28 +452,5 @@ export default class Application {
 
         })
 
-    }
-
-    getVkVar(key, defaultValue) {
-        return new Promise(resolve => {
-            if (!VK._bridge) return resolve(defaultValue);
-            VK.api("storage.get", {key: key}).then(response => {
-
-                if (response.response === "") {
-                    this.setVkVar(key, defaultValue);
-                    return resolve(defaultValue);
-                }
-
-                return resolve(response.response);
-            })
-        })
-    }
-
-    setVkVar(key, value) {
-        return new Promise(resolve => {
-            VK.api("storage.set", {key: key, value: value}).then(response => {
-                return resolve(response.response);
-            })
-        })
     }
 }

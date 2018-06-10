@@ -22,7 +22,7 @@ export default class CustomizeBall extends Scene {
         },
 
         {
-            name: "stone",
+            name: "Stone",
             price: 100,
             special: null
         }
@@ -109,7 +109,6 @@ export default class CustomizeBall extends Scene {
 
     }
 
-
     createArrowButton(icon) {
         let button = new pc.Entity("arrow-button");
 
@@ -146,6 +145,22 @@ export default class CustomizeBall extends Scene {
 
     events() {
         this.backBtn.element.on("click", event => {
+
+            // If we have a new ball
+            if (game.ballStyleId !== this.ballCurrent) {
+                game.ball.visual.destroy();
+                game.ball.destroy();
+                game.ballStyleId = this.ballCurrent;
+                game.ball = this.balls[this.ballCurrent];
+                game.ball.reparent(game.app.root);
+
+
+                game.ball.rigidbody.type = "static";
+                game.ball.rigidbody.teleport(0, 0, 0);
+                game.ball.rigidbody.type = "dynamic";
+                game.camera.setPosition(0, 2.4, -6);
+                game.cameraTargetPosition = new pc.Vec3(0, 2.4, -6);
+            }
 
             let animation = { speed: 0};
             anime({
@@ -188,6 +203,37 @@ export default class CustomizeBall extends Scene {
             this.resetBallVelocity();
         })
 
+        let updateLabel = () => {
+            let animation = {opacity: 1};
+
+            anime({
+                targets: animation,
+                opacity: 0,
+                duration: 150,
+                easing: "linear",
+                update: anime => {
+                    this.label.element.opacity = animation.opacity;
+                    this.label.icon.element.opacity = animation.opacity;
+                    this.label.text.element.opacity = animation.opacity;
+                },
+                complete: () => {
+                    this.label = this.createBallLabel(this.ballCurrent);
+
+                    anime({
+                        targets: animation,
+                        opacity: 1,
+                        duration: 150,
+                        easing: "linear",
+                        update: anime => {
+                            this.label.element.opacity = animation.opacity;
+                            this.label.icon.element.opacity = animation.opacity;
+                            this.label.text.element.opacity = animation.opacity;
+                        },
+                    })
+                }
+            })
+        }
+
         this.leftButton.element.on("click", event => {
             if (this.ballCurrent <= 0) return;
 
@@ -198,6 +244,7 @@ export default class CustomizeBall extends Scene {
             this.balls[--this.ballCurrent].visual.rigidbody.angularVelocity = new pc.Vec3(0,0,0);
 
             this.checkArrows();
+            updateLabel();
 
         })
 
@@ -211,6 +258,7 @@ export default class CustomizeBall extends Scene {
             this.balls[++this.ballCurrent].visual.rigidbody.angularVelocity = new pc.Vec3(0,0,0);
 
             this.checkArrows();
+            updateLabel();
 
         })
     }
@@ -263,6 +311,10 @@ export default class CustomizeBall extends Scene {
                     this.backBtn.element.opacity = animation.opacity;
                     this.title.element.opacity = animation.opacity;
 
+                    this.label.element.opacity = animation.opacity;
+                    this.label.icon.element.opacity = animation.opacity;
+                    this.label.text.element.opacity = animation.opacity;
+
                     if (this.leftButton.element.opacity >= animation.opacity)
                         this.leftButton.element.opacity = animation.opacity;
 
@@ -310,16 +362,30 @@ export default class CustomizeBall extends Scene {
             ball.rigidbody.type = "static";
             ball.rigidbody.teleport(-x, 0, 0);
             ball.rigidbody.type = "dynamic";
-
-            if (!this.label)
-                this.label = this.createBallLabel(i, x);
-        })
+        });
 
         this.ballCurrent = game.ballStyleId;
+        this.label = this.createBallLabel(this.ballCurrent);
+        let animation = {opacity: 0};
+
+        anime({
+            targets: animation,
+            opacity: 1,
+            duration: 150,
+            easing: "linear",
+            update: anime => {
+                this.label.element.opacity = animation.opacity;
+                this.label.icon.element.opacity = animation.opacity;
+                this.label.text.element.opacity = animation.opacity;
+            }
+        })
 
     }
 
-    createBallLabel(id, position) {
+    createBallLabel(id) {
+
+        let info = this.ballsInfo[id];
+        let current = game.ballStyleId === id;
 
         let label = new pc.Entity("button");
         label.addComponent("element", {
@@ -330,46 +396,46 @@ export default class CustomizeBall extends Scene {
             width: 168,
             height: 60,
             sprite: game.iconsSprite,
-            opacity: 1,
-            spriteFrame: Application.ICON_DEFAULT_BUTTON_BACKGROUND
+            opacity: 0,
+            spriteFrame: current? Application.ICON_CURRENT_BUTTON_BACKGROUND : Application.ICON_DEFAULT_BUTTON_BACKGROUND
         });
 
         let textEntity = new pc.Entity("text");
 
         textEntity.addComponent("element", {
             type: pc.ELEMENTTYPE_TEXT,
-            anchor: new pc.Vec4(0, 0.5, 0, 0),
-            pivot: new pc.Vec2(0, 0.5),
+            anchor: new pc.Vec4(0.5, 0, 0, 0),
+            pivot: new pc.Vec2(0.5, 0.5),
             useInput: true,
             width: 242,
             height: 80,
             fontAsset: game.app.assets.find("antonio-regular.json", "font").id,
             fontSize: 24,
-            opacity: 1,
-            text: "test"
+            opacity: 0,
+            text: info.name
         });
 
         let iconEntity = new pc.Entity("icon");
 
         iconEntity.addComponent("element", {
             type: pc.ELEMENTTYPE_IMAGE,
-            anchor: new pc.Vec4(0, 0.5, 0, 0),
+            anchor: new pc.Vec4(0, 0, 0, 0),
             pivot: new pc.Vec2(0, 0.5),
             useInput: true,
             width: 23,
             height: 17,
             sprite: game.iconsSprite,
-            opacity: 1,
+            opacity: 0,
             spriteFrame: Application.ICON_DONE
         });
 
         label.text = textEntity;
         label.icon = iconEntity;
 
-        this.screen.addChild(label);
-
         label.addChild(textEntity);
-        label.addChild(iconEntity);
+        //label.addChild(iconEntity);
+
+        this.screen.addChild(label);
 
         label.setPosition(0,0,0);
         label.setLocalPosition(0, -100, 0);
@@ -377,12 +443,14 @@ export default class CustomizeBall extends Scene {
         label.text.setPosition(0, 0, 0);
         label.icon.setPosition(0, 0, 0);
 
-        label.text.setLocalPosition(70, 0, 0);
-        label.icon.setLocalPosition(20, 0, 0);
-        label.icon.element.height = 17;
+        label.text.setLocalPosition(0, 30, 0);
+        label.icon.setLocalPosition(20, 30, 0);
+        //label.icon.element.height = 17;
 
         label.element.on("click", event => {
-            game.setVkVar("ballStyle", id);
+            game.storage.set("ballStyle", id);
+            this.ballCurrent = id;
+            label.element.spriteFrame = Application.ICON_CURRENT_BUTTON_BACKGROUND;
         })
 
 
